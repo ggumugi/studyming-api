@@ -28,5 +28,7 @@ module.exports = class Time extends Sequelize.Model {
       )
    }
 
-   static associate(db) {}
+   static associate(db) {
+      Time.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE' })
+   }
 }

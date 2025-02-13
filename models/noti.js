@@ -3,13 +3,23 @@ const Sequelize = require('sequelize')
 module.exports = class Noti extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
-         {},
+         {
+            message: {
+               type: Sequelize.TEXT,
+               allowNull: false,
+            },
+            isRead: {
+               type: Sequelize.BOOLEAN,
+               allowNull: false,
+               defaultValue: false,
+            },
+         },
          {
             sequelize,
-            timestamps: true, //createAt, updateAt ..등 자동 생성
+            timestamps: false, //createAt, updateAt ..등 자동 생성
             underscored: false,
-            modelName: '',
-            tableName: '',
+            modelName: 'Noti',
+            tableName: 'notis',
             paranoid: false, //deleteAt 사용 X
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',
@@ -17,5 +27,9 @@ module.exports = class Noti extends Sequelize.Model {
       )
    }
 
-   static associate(db) {}
+   static associate(db) {
+      Noti.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE' })
+      Noti.belongsTo(db.Admin, { foreignKey: 'adminId', targetKey: 'id', onDelete: 'CASCADE' })
+      Noti.hasMany(db.AdminAction, { foreignKey: 'notiId', sourceKey: 'id', onDelete: 'CASCADE' })
+   }
 }

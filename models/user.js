@@ -60,5 +60,28 @@ module.exports = class User extends Sequelize.Model {
       )
    }
 
-   static associate(db) {}
+   static associate(db) {
+      User.hasMany(db.Studygroup, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.belongsToMany(db.Studygroup, { foreignKey: 'userId', as: 'BannedGroups', through: 'Groupban' })
+      User.hasMany(db.Noti, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasOne(db.Time, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasOne(db.Object, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasMany(db.Post, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasMany(db.Comment, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasMany(db.Liked, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasOne(db.Admin, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasMany(db.AdminAction, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasMany(db.Banned, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasOne(db.Alltime, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasMany(db.Grouptime, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasMany(db.Auth, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasMany(db.Chat, { foreignKey: 'senderId', sourceKey: 'id', as: 'SenderChat', onDelete: 'CASCADE' })
+      User.hasMany(db.Chat, { foreignKey: 'receiverId', sourceKey: 'id', as: 'ReceiverChat', onDelete: 'CASCADE' })
+      User.hasMany(db.Interest, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasMany(db.Report, { foreignKey: 'reportedById', sourceKey: 'id', as: 'ReportedBy', onDelete: 'CASCADE' })
+      User.hasMany(db.Report, { foreignKey: 'reportedUserId', sourceKey: 'id', as: 'ReportedUser', onDelete: 'CASCADE' })
+      User.hasMany(db.Myitem, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasOne(db.Point, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      User.hasMany(db.Groupmember, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+   }
 }
