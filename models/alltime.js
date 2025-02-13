@@ -1,15 +1,21 @@
 const Sequelize = require('sequelize')
 
-module.exports = class AllTime extends Sequelize.Model {
+module.exports = class Alltime extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
-         {},
+         {
+            allTime: {
+               type: Sequelize.TIME,
+               allowNull: false,
+               defaultValue: '00:00:00',
+            },
+         },
          {
             sequelize,
-            timestamps: true,
+            timestamps: false,
             underscored: false,
-            modelName: '',
-            tableName: '',
+            modelName: 'Alltime',
+            tableName: 'alltimes',
             paranoid: false,
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',
@@ -17,5 +23,7 @@ module.exports = class AllTime extends Sequelize.Model {
       )
    }
 
-   static associate(db) {}
+   static associate(db) {
+      Alltime.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE' })
+   }
 }

@@ -1,10 +1,10 @@
 const Sequelize = require('sequelize')
 
-module.exports = class Purchase extends Sequelize.Model {
+module.exports = class Myitem extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
          {
-            fee: {
+            limit: {
                type: Sequelize.INTEGER,
                allowNull: false,
             },
@@ -13,8 +13,8 @@ module.exports = class Purchase extends Sequelize.Model {
             sequelize,
             timestamps: false, //createAt, updateAt ..등 자동 생성
             underscored: false,
-            modelName: 'Purchase',
-            tableName: 'purchases',
+            modelName: 'Myitem',
+            tableName: 'myitems',
             paranoid: false, //deleteAt 사용 X
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',
@@ -23,7 +23,7 @@ module.exports = class Purchase extends Sequelize.Model {
    }
 
    static associate(db) {
-      Purchase.belongsTo(db.Point, { foreignKey: 'pointId', targetKey: 'id', onDelete: 'CASCADE' })
-      Purchase.belongsTo(db.Item, { foreignKey: 'itemId', targetKey: 'id', onDelete: 'CASCADE' })
+      Myitem.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE' })
+      Myitem.belongsTo(db.Item, { foreignKey: 'itemId', targetKey: 'id', onDelete: 'CASCADE' })
    }
 }

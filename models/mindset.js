@@ -1,15 +1,20 @@
 const Sequelize = require('sequelize')
 
-module.exports = class User extends Sequelize.Model {
+module.exports = class Mindset extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
-         {},
+         {
+            mindset: {
+               type: Sequelize.TEXT,
+               allowNull: false,
+            },
+         },
          {
             sequelize,
-            timestamps: true, //createAt, updateAt ..등 자동 생성
+            timestamps: false, //createAt, updateAt ..등 자동 생성
             underscored: false,
-            modelName: '',
-            tableName: '',
+            modelName: 'Mindset',
+            tableName: 'mindsets',
             paranoid: false, //deleteAt 사용 X
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',
@@ -17,5 +22,7 @@ module.exports = class User extends Sequelize.Model {
       )
    }
 
-   static associate(db) {}
+   static associate(db) {
+      Mindset.belongsTo(db.Object, { foreignKey: 'objectId', targetKey: 'id', onDelete: 'CASCADE' })
+   }
 }

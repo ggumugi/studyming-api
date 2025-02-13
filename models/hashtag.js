@@ -1,15 +1,21 @@
 const Sequelize = require('sequelize')
 
-module.exports = class HashTag extends Sequelize.Model {
+module.exports = class Hashtag extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
-         {},
+         {
+            name: {
+               type: Sequelize.STRING(100),
+               allowNull: false,
+               unique: true,
+            },
+         },
          {
             sequelize,
-            timestamps: true,
+            timestamps: false,
             underscored: false,
-            modelName: '',
-            tableName: '',
+            modelName: 'Hashtag',
+            tableName: 'hashtags',
             paranoid: false,
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',
@@ -17,5 +23,7 @@ module.exports = class HashTag extends Sequelize.Model {
       )
    }
 
-   static associate(db) {}
+   static associate(db) {
+      Hashtag.belongsToMany(db.Studygroup, { foreignKey: 'tagId', targetKey: 'id', as: 'Tagedgroup', through: 'Grouptag' })
+   }
 }

@@ -77,31 +77,17 @@ module.exports = class Studygroup extends Sequelize.Model {
                type: Sequelize.TIME,
                allowNull: true,
             },
-            // 여기서부터하기
-
-            currentMembers: {
-               type: Sequelize.INTEGER,
-               allowNull: false,
-            },
-            isPrivate: {
-               type: Sequelize.BOOLEAN,
-               allowNull: false,
-            },
-            isArchived: {
-               type: Sequelize.BOOLEAN,
-               allowNull: false,
-            },
-            createdAt: {
-               type: Sequelize.DATE,
-               defaultValue: Sequelize.NOW,
+            studyDays: {
+               type: Sequelize.STRING(255),
+               allowNull: true,
             },
          },
          {
             sequelize,
             timestamps: true, //createAt, updateAt ..등 자동 생성
             underscored: false,
-            modelName: '',
-            tableName: '',
+            modelName: 'Studygroup',
+            tableName: 'studygroups',
             paranoid: false, //deleteAt 사용 X
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',
@@ -109,5 +95,15 @@ module.exports = class Studygroup extends Sequelize.Model {
       )
    }
 
-   static associate(db) {}
+   static associate(db) {
+      Studygroup.belongsToMany(db.User, { foreignKey: 'groupId', as: 'BannedUsers', through: 'Groupban' })
+      Studygroup.belongsToMany(db.Hashtag, { foreignKey: 'groupId', as: 'Hashtaged', through: 'Grouptag' })
+      Studygroup.belongsTo(db.User, { foreignKey: 'createdBy', targetKey: 'id', onDelete: 'CASCADE', as: 'Leader' })
+      Studygroup.hasOne(db.Channel, { foreignKey: 'groupId', targetKey: 'id', onDelete: 'CASCADE' })
+      Studygroup.hasMany(db.Liked, { foreignKey: 'groupId', sourceKey: 'id', onDelete: 'CASCADE' })
+      Studygroup.hasMany(db.AdminAction, { foreignKey: 'groupId', sourceKey: 'id', onDelete: 'CASCADE' })
+      Studygroup.hasMany(db.Grouptime, { foreignKey: 'groupId', sourceKey: 'id', onDelete: 'CASCADE' })
+      Studygroup.hasMany(db.Groupmember, { foreignKey: 'groupId', sourceKey: 'id', onDelete: 'CASCADE' })
+      Studygroup.hasMany(db.Chat, { foreignKey: 'groupId', sourceKey: 'id', onDelete: 'CASCADE' })
+   }
 }

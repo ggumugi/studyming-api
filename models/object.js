@@ -6,10 +6,10 @@ module.exports = class Object extends Sequelize.Model {
          {},
          {
             sequelize,
-            timestamps: true, //createAt, updateAt ..등 자동 생성
+            timestamps: false, //createAt, updateAt ..등 자동 생성
             underscored: false,
-            modelName: '',
-            tableName: '',
+            modelName: 'Object',
+            tableName: 'objects',
             paranoid: false, //deleteAt 사용 X
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',
@@ -17,5 +17,10 @@ module.exports = class Object extends Sequelize.Model {
       )
    }
 
-   static associate(db) {}
+   static associate(db) {
+      Object.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE' })
+      Object.hasMany(db.Mindset, { foreignKey: 'objectId', sourceKey: 'id', onDelete: 'CASCADE' })
+      Object.hasMany(db.Goals, { foreignKey: 'objectId', sourceKey: 'id', onDelete: 'CASCADE' })
+      Object.hasMany(db.DDay, { foreignKey: 'objectId', sourceKey: 'id', onDelete: 'CASCADE' })
+   }
 }
