@@ -8,7 +8,25 @@ const Auth = require('../models/auth')
 const router = express.Router()
 //회원가입 localhost:8000/auth/signup
 router.post('/signup', isNotLoggedIn, async (req, res, next) => {
-   const { email, password, nickname, name } = req.body
+   console.log('회원가입 요청 데이터:', req.body) // ✅ 서버에서 요청 데이터 확인
+
+   const { email, password, nickname, name, login_id } = req.body
+   // 🚨 1. 필수 값이 누락되었는지 확인
+   if (!email || !password || !nickname || !name || !login_id) {
+      return res.status(400).json({
+         success: false,
+         message: '필수 정보를 모두 입력해주세요.',
+      })
+   }
+
+   // 🚨 2. 비밀번호 값이 있는지 확인
+   if (!password.trim()) {
+      // 공백 입력 방지
+      return res.status(400).json({
+         success: false,
+         message: '비밀번호를 입력해주세요.',
+      })
+   }
 
    try {
       //이메일로 기존 사용자 검색(중복확인)
@@ -41,6 +59,8 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
          birth: null,
       })
 
+      console.log('새로 생성된 유저:', newUser) // ✅ 회원가입 후 생성된 데이터 확인
+
       //성공 응답 반환
       res.status(201).json({
          success: true,
@@ -52,9 +72,9 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
             role: newUser.role,
             nickname: newUser.nickname,
             name: newUser.name,
-            status: 'ACTIVE', // ✅ 회원가입 시 명시적으로 'ACTIVE' 설정
-            gender: 'NONE', // ✅ 회원가입 시 명시적으로 'NONE' 설정
-            birth: null, // ✅ 회원가입 시 기본적으로 null (생년월일 입력 안 하면)
+            status: 'ACTIVE', // 회원가입 시 명시적으로 'ACTIVE' 설정
+            gender: 'NONE', // 회원가입 시 명시적으로 'NONE' 설정
+            birth: null, // 회원가입 시 기본적으로 null (생년월일 입력 안 하면)
          },
       })
    } catch (error) {
@@ -63,8 +83,44 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
       res.status(500).json({
          success: false,
          message: '회원가입 중 오류가 발생했습니다.',
-         error,
+         error: error.message, // 추가: 오류 메시지 반환
       })
+   }
+})
+
+// ✅ 아이디 중복 확인
+router.get('/check-id', async (req, res) => {
+   const { login_id } = req.query // 프론트에서 보낸 아이디 값 받기
+
+   try {
+      const existingUser = await User.findOne({ where: { login_id } }) // DB에서 아이디 조회
+
+      if (existingUser) {
+         return res.status(409).json({ success: false, message: '이미 존재하는 아이디입니다.' }) // 중복된 아이디
+      }
+
+      res.json({ success: true, message: '사용 가능한 아이디입니다.' }) // 사용 가능
+   } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, message: '서버 오류 발생', error })
+   }
+})
+
+// ✅ 닉네임 중복 확인
+router.get('/check-nickname', async (req, res) => {
+   const { nickname } = req.query // 프론트에서 보낸 닉네임 값 받기
+
+   try {
+      const existingUser = await User.findOne({ where: { nickname } }) // DB에서 닉네임 조회
+
+      if (existingUser) {
+         return res.status(409).json({ success: false, message: '이미 존재하는 닉네임입니다.' }) // 중복된 닉네임
+      }
+
+      res.json({ success: true, message: '사용 가능한 닉네임입니다.' }) // 사용 가능
+   } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, message: '서버 오류 발생', error })
    }
 })
 
