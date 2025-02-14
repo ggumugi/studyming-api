@@ -23,17 +23,17 @@ module.exports = class Groupmember extends Sequelize.Model {
                allowNull: false,
                defaultValue: 0,
             },
-            share_state: {
+            shareState: {
                type: Sequelize.BOOLEAN,
                allowNull: false,
                defaultValue: false,
             },
-            cam_state: {
+            camState: {
                type: Sequelize.BOOLEAN,
                allowNull: false,
                defaultValue: false,
             },
-            voice_state: {
+            voiceState: {
                type: Sequelize.BOOLEAN,
                allowNull: false,
                defaultValue: false,
