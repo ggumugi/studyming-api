@@ -52,6 +52,7 @@ app.use(passport.session())
 
 // 라우터 설정
 app.use('/auth', authRouter) // 구글 로그인 관련 라우터
+app.use('/signup', authRouter) //자체회원가입 관련 라우터
 
 // 서버 실행
 app.listen(app.get('port'), () => {
