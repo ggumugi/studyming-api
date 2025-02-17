@@ -14,7 +14,7 @@ module.exports = () => {
             passwordField: 'password', // req.body.password = '1111'
          },
          //실제 인증 로직
-         async (email, password, done) => {
+         async (login_id, password, done) => {
             try {
                // 이메일로 사용자 조회
                // select * from users where email = ?
