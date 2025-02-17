@@ -8,7 +8,7 @@ module.exports = class Chat extends Sequelize.Model {
                type: Sequelize.TEXT,
                allowNull: false,
             },
-            message_type: {
+            messageType: {
                type: Sequelize.ENUM('text', 'image', 'file'),
                allowNull: false,
                defaultValue: 'text',
