@@ -1,8 +1,14 @@
 const passport = require('passport')
 const GoogleStrategy = require('passport-google-oauth20').Strategy
+const localStrategy = require('./localStrategy') // ✅ Local 로그인 전략 추가
 require('dotenv').config()
 
 module.exports = () => {
+   console.log('📌 Passport 초기화 시작') // ✅ Passport 초기화 확인용 로그
+
+   // ✅ Local 로그인 전략 실행
+   localStrategy()
+
    passport.use(
       new GoogleStrategy(
          {
