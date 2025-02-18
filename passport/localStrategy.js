@@ -10,15 +10,15 @@ module.exports = () => {
       new LocalStrategy(
          {
             //input 태그에서 name으로 사용하는 이름을 지정
-            usernameField: 'login_id', // req.body.nickname = 'test@test.com'
+            usernameField: 'loginId', // req.body.nickname = 'test@test.com'
             passwordField: 'password', // req.body.password = '1111'
          },
          //실제 인증 로직
-         async (login_id, password, done) => {
+         async (loginId, password, done) => {
             try {
                // 이메일로 사용자 조회
                // select * from users where email = ?
-               const exUser = await User.findOne({ where: { login_id } })
+               const exUser = await User.findOne({ where: { loginId } })
 
                if (exUser) {
                   //이메일에 해당하는 사용자가 있는 경우 비밀번호 비교
@@ -32,7 +32,7 @@ module.exports = () => {
                      done(null, false, { message: '비밀번호가 일치하지 않습니다.' })
                   }
                } else {
-                  //이메일에 해당하는 사용자가 없는 경우 message를 passport에 반환
+                  //아이디에 해당하는 사용자가 없는 경우 message를 passport에 반환
                   done(null, false, { message: '가입되지 않은 회원입니다.' })
                }
             } catch (error) {
