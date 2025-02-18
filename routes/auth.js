@@ -64,6 +64,51 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
    }
 })
 
+//아이디 중복 체크
+router.get('/check-id', async (req, res) => {
+   const { login_id } = req.query // 쿼리 파라미터에서 login_id 가져오기
+
+   if (!login_id) {
+      return res.status(400).json({ success: false, message: '아이디를 입력해주세요.' })
+   }
+
+   try {
+      const existingUser = await User.findOne({ where: { login_id } })
+
+      if (existingUser) {
+         return res.status(409).json({ success: false, message: '이미 존재하는 아이디입니다.' })
+      }
+
+      res.json({ success: true, message: '사용 가능한 아이디입니다.' })
+   } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, message: '서버 오류 발생', error: error.message })
+   }
+})
+
+//닉네임 중복체크
+router.get('/check-nickname', async (req, res) => {
+   const { nickname } = req.query // 쿼리 파라미터에서 nickname 가져오기
+
+   if (!nickname) {
+      return res.status(400).json({ success: false, message: '닉네임을 입력해주세요.' })
+   }
+
+   try {
+      const existingUser = await User.findOne({ where: { nickname } })
+
+      if (existingUser) {
+         return res.status(409).json({ success: false, message: '이미 존재하는 닉네임입니다.' })
+      }
+
+      res.json({ success: true, message: '사용 가능한 닉네임입니다.' })
+   } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, message: '서버 오류 발생', error: error.message })
+   }
+})
+module.exports = router
+
 //자체로그인 localhost:8000/auth/login
 router.post('/login', isNotLoggedIn, async (req, res, next) => {
    passport.authenticate('local', (authError, user, info) => {
