@@ -1,12 +1,12 @@
 /* 경희 */
 const express = require('express')
 const router = express.Router()
-const { MindSet } = require('../models')
+const { Mindset } = require('../models')
 
 // MindSet 목록 가져오기
 router.get('/', async (req, res) => {
    try {
-      const minsets = await MindSet.findAll()
+      const minsets = await Mindset.findAll()
       res.json(minsets)
    } catch (error) {
       res.status(500).json({ message: '서버 오류', error })
@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
    try {
       const { mindset } = req.body
-      const newMindset = await MindSet.create({ mindset })
+      const newMindset = await Mindset.create({ mindset })
       res.status(201).json(newMindset)
    } catch (error) {
       res.status(500).json({ message: '서버 오류', error })
@@ -34,7 +34,7 @@ router.put('/:id', async (req, res) => {
          return res.status(400).json({ message: 'mindset 값이 없습니다.' })
       }
 
-      await MindSet.update({ mindset }, { where: { id } })
+      await Mindset.update({ mindset }, { where: { id } })
 
       res.json({ message: '수정 완료', mindset })
    } catch (error) {
@@ -46,7 +46,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
    try {
       const { id } = req.params
-      await MindSet.destroy({ where: { id } })
+      await Mindset.destroy({ where: { id } })
       res.json({ message: '삭제 완료' })
    } catch (error) {
       res.status(500).json({ message: '서버 오류', error })
