@@ -1,6 +1,8 @@
 const express = require('express')
 const passport = require('passport')
 const bcrypt = require('bcrypt')
+const nodemailer = require('nodemailer')
+const crypto = require('crypto') // 랜덤 인증 코드 생성
 const { isLoggedIn, isNotLoggedIn } = require('./middlewares')
 const User = require('../models/user')
 const Auth = require('../models/auth')
@@ -8,47 +10,24 @@ const Auth = require('../models/auth')
 const router = express.Router()
 //회원가입 localhost:8000/auth/signup
 router.post('/signup', isNotLoggedIn, async (req, res, next) => {
-   console.log('회원가입 요청 데이터:', req.body) // ✅ 서버에서 요청 데이터 확인
+   console.log('회원가입 요청 데이터:', req.body)
 
-   const { email, password, nickname, name, login_id } = req.body
-   // 🚨 1. 필수 값이 누락되었는지 확인
-   if (!email || !password || !nickname || !name || !login_id) {
-      return res.status(400).json({
-         success: false,
-         message: '필수 정보를 모두 입력해주세요.',
-      })
+   const { email, password, nickname, name, loginId } = req.body
+
+   if (!email || !password || !nickname || !name || !loginId) {
+      return res.status(400).json({ success: false, message: '필수 정보를 모두 입력해주세요.' })
    }
 
-   // 🚨 2. 비밀번호 값이 있는지 확인
    if (!password.trim()) {
-      // 공백 입력 방지
-      return res.status(400).json({
-         success: false,
-         message: '비밀번호를 입력해주세요.',
-      })
+      return res.status(400).json({ success: false, message: '비밀번호를 입력해주세요.' })
    }
 
    try {
-      //이메일로 기존 사용자 검색(중복확인)
-      // select * from users where email = ?
-      const exUser = await User.findOne({ where: { email } })
+      // 회원가입 시 중복된 아이디 또는 닉네임이 있을 경우, DB에서 오류 발생
+      const hash = await bcrypt.hash(password, 12)
 
-      if (exUser) {
-         //이미 사용자가 존재할 경우 409 상태코드와 메세지를 json객체로 응답하면서 함수를 끝냄
-         return res.status(409).json({
-            success: false,
-            message: '이미 존재하는 사용자입니다.',
-         })
-      }
-
-      // ---이메일 중복 확인을 통과시 새로운 사용자 계정 생성----
-
-      //비밀번호 암호화
-      const hash = await bcrypt.hash(password, 12) // 12: salt(해시 암호화를 진행시 추가되는 임의의 데이터로 10~12 정도의 값이 권장)
-
-      //새로운 사용자 생성
       const newUser = await User.create({
-         login_id,
+         loginId,
          email,
          password: hash,
          role: 'USER',
@@ -59,72 +38,231 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
          birth: null,
       })
 
-      console.log('새로 생성된 유저:', newUser) // ✅ 회원가입 후 생성된 데이터 확인
-
-      //성공 응답 반환
       res.status(201).json({
          success: true,
          message: '사용자가 성공적으로 등록되었습니다.',
          user: {
             id: newUser.id,
-            login_d: newUser.login_id,
+            loginId: newUser.loginId,
             email: newUser.email,
             role: newUser.role,
             nickname: newUser.nickname,
             name: newUser.name,
-            status: 'ACTIVE', // 회원가입 시 명시적으로 'ACTIVE' 설정
-            gender: 'NONE', // 회원가입 시 명시적으로 'NONE' 설정
-            birth: null, // 회원가입 시 기본적으로 null (생년월일 입력 안 하면)
          },
       })
    } catch (error) {
-      //try문 어딘가에서 에러가 발생하면 500상태 코드와 json 객체 응답
-      console.error(error)
-      res.status(500).json({
-         success: false,
-         message: '회원가입 중 오류가 발생했습니다.',
-         error: error.message, // 추가: 오류 메시지 반환
-      })
+      console.error('회원가입 에러:', error)
+
+      // 중복된 데이터로 인해 DB 오류 발생 시 처리 (SequelizeValidationError)
+      if (error.name === 'SequelizeUniqueConstraintError') {
+         const field = error.errors[0].path
+         return res.status(409).json({
+            success: false,
+            message: field === 'login_id' ? '중복된 아이디입니다.' : '중복된 닉네임입니다.',
+         })
+      }
+
+      res.status(500).json({ success: false, message: '서버 오류 발생', error: error.message })
    }
 })
 
-// ✅ 아이디 중복 확인
+// 아이디 중복 확인 API
 router.get('/check-id', async (req, res) => {
-   const { login_id } = req.query // 프론트에서 보낸 아이디 값 받기
+   const { loginId } = req.query
+
+   if (!loginId) {
+      return res.status(400).json({ success: false, message: '아이디를 입력해주세요.' })
+   }
 
    try {
-      const existingUser = await User.findOne({ where: { login_id } }) // DB에서 아이디 조회
+      const existingUser = await User.findOne({ where: { loginId } })
 
       if (existingUser) {
-         return res.status(409).json({ success: false, message: '이미 존재하는 아이디입니다.' }) // 중복된 아이디
+         return res.status(409).json({ success: false, message: '이미 존재하는 아이디입니다.' }) // ✅ 중복된 경우 409 응답
       }
 
-      res.json({ success: true, message: '사용 가능한 아이디입니다.' }) // 사용 가능
+      res.json({ success: true, message: '사용 가능한 아이디입니다.' })
    } catch (error) {
       console.error(error)
-      res.status(500).json({ success: false, message: '서버 오류 발생', error })
+      res.status(500).json({ success: false, message: '서버 오류 발생', error: error.message })
    }
 })
 
-// ✅ 닉네임 중복 확인
+// 닉네임 중복 확인 API
 router.get('/check-nickname', async (req, res) => {
-   const { nickname } = req.query // 프론트에서 보낸 닉네임 값 받기
+   const { nickname } = req.query
+
+   if (!nickname) {
+      return res.status(400).json({ success: false, message: '닉네임을 입력해주세요.' })
+   }
 
    try {
-      const existingUser = await User.findOne({ where: { nickname } }) // DB에서 닉네임 조회
+      const existingUser = await User.findOne({ where: { nickname } })
 
       if (existingUser) {
-         return res.status(409).json({ success: false, message: '이미 존재하는 닉네임입니다.' }) // 중복된 닉네임
+         return res.status(409).json({ success: false, message: '이미 존재하는 닉네임입니다.' }) // ✅ 중복된 경우 409 응답
       }
 
-      res.json({ success: true, message: '사용 가능한 닉네임입니다.' }) // 사용 가능
+      res.json({ success: true, message: '사용 가능한 닉네임입니다.' })
    } catch (error) {
       console.error(error)
-      res.status(500).json({ success: false, message: '서버 오류 발생', error })
+      res.status(500).json({ success: false, message: '서버 오류 발생', error: error.message })
    }
 })
 
 //자체로그인 localhost:8000/auth/login
+router.post('/login', isNotLoggedIn, async (req, res, next) => {
+   passport.authenticate('local', (authError, user, info) => {
+      if (authError) {
+         //로그인 인증 중 에러 발생시
+         return res.status(500).json({ success: false, message: '인증 중 오류 발생', error: authError })
+      }
+
+      if (!user) {
+         //비밀번호 불일치 또는 사용자가 없을 경우 info.message를 사용해서 메세지 전달
+         return res.status(401).json({
+            success: false,
+            message: info.message || '로그인 실패',
+         })
+      }
+
+      // 인증이 정상적으로 되고 사용자를 로그인 상태로 바꿈
+      req.login(user, (loginError) => {
+         if (loginError) {
+            //로그인 상태로 바꾸는 중 오류 발생시
+            return res.status(500).json({ success: false, message: '로그인 중 오류 발생', error: loginError })
+         }
+
+         //로그인 성공시 user객체와 함께 response
+         //status code를 주지 않으면 기본값은 200(성공)
+         res.json({
+            success: true,
+            message: '로그인 성공',
+            user: {
+               id: user.id,
+               loginId: user.loginId,
+               email: user.email,
+               nickname: user.nickname,
+               name: user.name,
+               role: user.role,
+            },
+         })
+      })
+   })(req, res, next)
+})
+// 이메일로 아이디 찾기
+router.post('/find-id', async (req, res) => {
+   const { email } = req.body // 클라이언트에서 전달된 이메일
+
+   if (!email) {
+      return res.status(400).json({ success: false, message: '이메일을 입력해주세요.' })
+   }
+
+   try {
+      // 이메일로 사용자 검색
+      const user = await User.findOne({ where: { email } })
+
+      if (!user) {
+         return res.status(404).json({ success: false, message: '이메일에 해당하는 사용자가 없습니다.' })
+      }
+
+      // 사용자가 존재하면 아이디 반환
+      res.status(200).json({
+         success: true,
+         message: '아이디 찾기 성공',
+         loginId: user.loginId, // 아이디 반환
+      })
+   } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' })
+   }
+})
+const verificationCodes = {} // 🔥 인증 코드 저장 (메모리 저장)
+
+//1. 이메일로 인증 코드 전송 API (POST)
+router.post('/find-id/send-code', async (req, res) => {
+   const { email } = req.body // ✅ POST 방식이므로 req.body 사용
+
+   if (!email) {
+      return res.status(400).json({ success: false, message: '이메일을 입력해주세요.' })
+   }
+
+   try {
+      console.log('🔎 [DEBUG] 이메일 인증 요청:', email)
+
+      // 🔥 데이터베이스에서 해당 이메일이 존재하는지 확인
+      const user = await User.findOne({ where: { email } })
+      if (!user) {
+         return res.status(404).json({ success: false, message: '가입된 이메일이 없습니다.' })
+      }
+
+      // 6자리 랜덤 인증 코드 생성
+      const verificationCode = crypto.randomInt(100000, 999999).toString()
+      console.log('✅ [DEBUG] 생성된 인증 코드:', verificationCode)
+
+      // 인증 코드 저장 (5분 후 자동 삭제)
+      verificationCodes[email] = verificationCode
+      setTimeout(() => {
+         delete verificationCodes[email]
+      }, 5 * 60 * 1000) // 5분 후 자동 삭제
+
+      // ✉️ 이메일 전송 설정
+      const transporter = nodemailer.createTransport({
+         service: 'gmail',
+         auth: {
+            user: process.env.EMAIL_USER, // 📌 발신자 이메일
+            pass: process.env.EMAIL_PASS, // 📌 앱 비밀번호
+         },
+      })
+
+      const mailOptions = {
+         from: process.env.EMAIL_USER, // 발신자 이메일 (고정)
+         to: email, // 📩 수신자 이메일 (DB에서 가져온 사용자 이메일)
+         subject: '스터디밍 이메일 인증 코드',
+         text: `귀하의 인증 코드는: ${verificationCode} 입니다. 5분 이내에 입력해주세요.`,
+      }
+
+      await transporter.sendMail(mailOptions)
+      console.log('📩 [DEBUG] 이메일 전송 완료:', email)
+
+      res.json({ success: true, message: '이메일로 인증 코드를 전송했습니다.' })
+   } catch (error) {
+      console.error('🚨 [ERROR] 인증 코드 전송 실패:', error)
+      res.status(500).json({ success: false, message: '이메일 전송 중 오류가 발생했습니다.' })
+   }
+})
+
+// ✅ 2. 인증 코드 검증 및 아이디 반환 API (POST)
+router.post('/find-id/verify-code', async (req, res) => {
+   const { email, verificationCode } = req.body // ✅ POST 방식이므로 req.body 사용
+
+   if (!email || !verificationCode) {
+      return res.status(400).json({ success: false, message: '이메일과 인증 코드를 입력해주세요.' })
+   }
+
+   try {
+      console.log('🔎 [DEBUG] 인증 코드 확인 요청:', email, verificationCode)
+
+      // 저장된 인증 코드 확인
+      if (verificationCodes[email] !== verificationCode) {
+         return res.status(400).json({ success: false, message: '인증 코드가 일치하지 않습니다.' })
+      }
+
+      // 인증 코드가 일치하면 해당 이메일의 아이디 조회
+      const user = await User.findOne({ where: { email } })
+      if (!user) {
+         return res.status(404).json({ success: false, message: '가입된 이메일이 없습니다.' })
+      }
+
+      console.log('✅ [DEBUG] 인증 성공 - 찾은 아이디:', user.loginId)
+
+      // 인증 성공 시 아이디 반환
+      res.json({ success: true, loginId: user.loginId })
+   } catch (error) {
+      console.error('🚨 [ERROR] 인증 코드 확인 실패:', error)
+      res.status(500).json({ success: false, message: '인증 코드 확인 중 오류가 발생했습니다.' })
+   }
+})
 
 // ✅ Google 로그인 시작
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
