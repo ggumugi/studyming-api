@@ -58,7 +58,7 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
          const field = error.errors[0].path
          return res.status(409).json({
             success: false,
-            message: field === 'login_id' ? '중복된 아이디입니다.' : '중복된 닉네임입니다.',
+            message: field === 'loginId' ? '중복된 아이디입니다.' : '중복된 닉네임입니다.',
          })
       }
 
@@ -193,7 +193,7 @@ router.post('/find-id/send-code', async (req, res) => {
       // 🔥 데이터베이스에서 해당 이메일이 존재하는지 확인
       const user = await User.findOne({ where: { email } })
       if (!user) {
-         return res.status(404).json({ success: false, message: '가입된 이메일이 없습니다.' })
+         return res.status(400).json({ success: false, message: '가입된 이메일이 없습니다.' })
       }
 
       // 6자리 랜덤 인증 코드 생성
@@ -251,7 +251,7 @@ router.post('/find-id/verify-code', async (req, res) => {
       // 인증 코드가 일치하면 해당 이메일의 아이디 조회
       const user = await User.findOne({ where: { email } })
       if (!user) {
-         return res.status(404).json({ success: false, message: '가입된 이메일이 없습니다.' })
+         return res.status(400).json({ success: false, message: '가입된 이메일이 없습니다.' })
       }
 
       console.log('✅ [DEBUG] 인증 성공 - 찾은 아이디:', user.loginId)
@@ -261,6 +261,121 @@ router.post('/find-id/verify-code', async (req, res) => {
    } catch (error) {
       console.error('🚨 [ERROR] 인증 코드 확인 실패:', error)
       res.status(500).json({ success: false, message: '인증 코드 확인 중 오류가 발생했습니다.' })
+   }
+})
+
+//비밀번호찾기 항목
+
+// 비밀번호 찾기 - 1. 아이디 입력 후 이메일 입력으로 넘어가기
+router.post('/password-reset/check-id', async (req, res) => {
+   const { loginId } = req.body
+
+   // 아이디가 존재하는지 확인
+   const user = await User.findOne({ where: { loginId } })
+
+   if (!user) {
+      return res.status(400).json({ success: false, message: '아이디가 존재하지 않습니다.' })
+   }
+
+   // 아이디가 존재하면 이메일 입력 필드로 넘어감
+   res.json({ success: true, message: '아이디가 존재합니다.' })
+})
+
+const verificationCodespw = {} // ✅ 비밀번호 찾기용 인증 코드 저장소
+
+// 비밀번호 찾기 - 2. 이메일 입력 후 아이디와 이메일 일치 여부 확인
+router.post('/password-reset/check-email', async (req, res) => {
+   const { loginId, email } = req.body
+
+   // 아이디와 이메일이 일치하는지 확인
+   const user = await User.findOne({ where: { loginId, email } })
+
+   if (!user) {
+      return res.status(400).json({ success: false, message: '아이디와 이메일이 일치하지 않습니다.' })
+   }
+
+   // 일치하면 인증 코드 전송
+   const verificationCodepw = crypto.randomInt(100000, 999999).toString()
+
+   // 인증 코드 저장 (5분 후 자동 삭제)
+   verificationCodespw[email] = verificationCodepw
+   setTimeout(() => {
+      delete verificationCodespw[email]
+   }, 5 * 60 * 1000) // 5분 후 자동 삭제
+
+   // 이메일 전송 설정
+   const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+         user: process.env.EMAIL_USER, // 📌 발신자 이메일
+         pass: process.env.EMAIL_PASS, // 📌 앱 비밀번호
+      },
+   })
+
+   const mailOptions = {
+      from: process.env.EMAIL_USER, // 발신자 이메일 (고정)
+      to: email, // 📩 수신자 이메일 (DB에서 가져온 사용자 이메일)
+      subject: '스터디밍 비밀번호 재설정 인증 코드',
+      text: `귀하의 인증 코드는: ${verificationCodepw} 입니다. 5분 이내에 입력해주세요.`,
+   }
+
+   try {
+      await transporter.sendMail(mailOptions)
+      console.log('📩 [DEBUG] 이메일 전송 완료:', email)
+      res.json({ success: true, message: '이메일로 인증 코드를 전송했습니다.' })
+   } catch (error) {
+      console.error('🚨 [ERROR] 인증 코드 전송 실패:', error)
+      res.status(500).json({ success: false, message: '이메일 전송 중 오류가 발생했습니다.' })
+   }
+})
+
+// ✅ 3. 비밀번호 찾기 - 인증 코드 검증 및 비밀번호 변경 페이지로 이동 (POST)
+router.post('/password-reset/verify-code', async (req, res) => {
+   const { email, verificationCodepw } = req.body // ✅ POST 방식이므로 req.body 사용
+
+   if (!email || !verificationCodepw) {
+      return res.status(400).json({ success: false, message: ' 인증 코드를 입력해주세요.' })
+   }
+
+   try {
+      console.log('🔎 [DEBUG] 인증 코드 확인 요청:', email, verificationCodepw)
+
+      // 저장된 인증 코드 확인
+      if (verificationCodespw[email] !== verificationCodepw) {
+         return res.status(400).json({ success: false, message: '인증 코드가 일치하지 않습니다.' })
+      }
+
+      // 인증 성공 시 비밀번호 변경 가능 상태로 이동
+      res.json({ success: true, message: '인증 성공! 비밀번호 변경 페이지로 이동합니다.' })
+   } catch (error) {
+      console.error('🚨 [ERROR] 인증 코드 확인 실패:', error)
+      res.status(500).json({ success: false, message: '인증 코드 확인 중 오류가 발생했습니다.' })
+   }
+})
+
+// **4. 새 비밀번호 설정 (이메일 검증 없이 비밀번호만 변경)**
+router.patch('/password-reset/update-password', async (req, res) => {
+   const { newPassword } = req.body // 이메일은 생략하고 비밀번호만 받음
+
+   try {
+      // 인증 코드 검증 과정에서 이미 이메일은 확인되었으므로, 현재 세션에 있는 사용자만 처리하면 됨
+      const user = req.user // 인증된 사용자 정보 (이메일이나 아이디는 인증 코드 검증에서 확인됨)
+
+      if (!user) {
+         return res.status(400).json({ success: false, message: '사용자가 인증되지 않았습니다.' })
+      }
+
+      // 비밀번호 해싱
+      const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+      // 비밀번호 업데이트
+      await user.update({ password: hashedPassword }) // `password` 필드를 업데이트
+
+      // 성공 메시지 반환
+      res.json({ success: true, message: '비밀번호가 성공적으로 변경되었습니다.' })
+   } catch (error) {
+      console.error('🚨 [ERROR] 비밀번호 변경 실패:', error)
+      res.status(500).json({ success: false, message: '비밀번호 변경 중 오류가 발생했습니다.' })
    }
 })
 

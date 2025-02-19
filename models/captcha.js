@@ -5,12 +5,17 @@ module.exports = class Captcha extends Sequelize.Model {
       return super.init(
          {
             img: {
-               type: Sequelize.STRING(255),
+               type: Sequelize.TEXT,
                allowNull: false,
             },
             text: {
                type: Sequelize.STRING(50),
                allowNull: false,
+            },
+            token: {
+               type: Sequelize.STRING(255),
+               allowNull: false,
+               unique: true,
             },
          },
          {
