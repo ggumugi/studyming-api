@@ -12,8 +12,12 @@ const passportConfig = require('./passport')
 const authRouter = require('./routes/auth')
 const dDayRouter = require('./routes/dDay')
 const mindsetRouter = require('./routes/mindset')
+<<<<<<< HEAD
+const goalsRouter = require('./routes/goals')
+=======
 const pointRouter = require('./routes/point')
 const itemRouter = require('./routes/item')
+>>>>>>> f7daec36b9d9ffe1fa76a4e5ceff3a4518192874
 
 const app = express()
 
@@ -62,8 +66,12 @@ app.use('/auth', authRouter) // 구글 로그인 관련 라우터
 app.use('/signup', authRouter) //자체회원가입 관련 라우터
 app.use('/dDay', dDayRouter) // 홈화면 디데이 라우터
 app.use('/mindset', mindsetRouter) // 홈화면 디데이 라우터
+<<<<<<< HEAD
+app.use('/goals', goalsRouter) // 홈화면 디데이 라우터
+=======
 app.use('/point', pointRouter) // 포인트 관련 라우터
 app.use('/item', itemRouter) // 밍샵아이템 관련 라우터
+>>>>>>> f7daec36b9d9ffe1fa76a4e5ceff3a4518192874
 
 // 서버 실행
 app.listen(app.get('port'), () => {
