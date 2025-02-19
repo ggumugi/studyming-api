@@ -12,6 +12,7 @@ const passportConfig = require('./passport')
 const authRouter = require('./routes/auth')
 const dDayRouter = require('./routes/dDay')
 const mindsetRouter = require('./routes/mindset')
+const goalsRouter = require('./routes/goals')
 
 const app = express()
 
@@ -57,6 +58,7 @@ app.use('/auth', authRouter) // 구글 로그인 관련 라우터
 app.use('/signup', authRouter) //자체회원가입 관련 라우터
 app.use('/dDay', dDayRouter) // 홈화면 디데이 라우터
 app.use('/mindset', mindsetRouter) // 홈화면 디데이 라우터
+app.use('/goals', goalsRouter) // 홈화면 디데이 라우터
 
 // 서버 실행
 app.listen(app.get('port'), () => {
