@@ -58,7 +58,7 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
          const field = error.errors[0].path
          return res.status(409).json({
             success: false,
-            message: field === 'login_id' ? '중복된 아이디입니다.' : '중복된 닉네임입니다.',
+            message: field === 'loginId' ? '중복된 아이디입니다.' : '중복된 닉네임입니다.',
          })
       }
 

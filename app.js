@@ -12,6 +12,8 @@ const passportConfig = require('./passport')
 const authRouter = require('./routes/auth')
 const dDayRouter = require('./routes/dDay')
 const mindsetRouter = require('./routes/mindset')
+const pointRouter = require('./routes/point')
+const itemRouter = require('./routes/item')
 
 const app = express()
 
@@ -36,6 +38,9 @@ app.use(express.json()) // JSON 데이터 파싱
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser(process.env.COOKIE_SECRET))
 
+// 📌 정적 파일 제공: 업로드된 이미지 접근 가능하도록 설정
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))) // ✅ 추가
+
 // 세션 설정
 const sessionMiddleware = session({
    secret: process.env.COOKIE_SECRET,
@@ -57,6 +62,8 @@ app.use('/auth', authRouter) // 구글 로그인 관련 라우터
 app.use('/signup', authRouter) //자체회원가입 관련 라우터
 app.use('/dDay', dDayRouter) // 홈화면 디데이 라우터
 app.use('/mindset', mindsetRouter) // 홈화면 디데이 라우터
+app.use('/point', pointRouter) // 포인트 관련 라우터
+app.use('/item', itemRouter) // 밍샵아이템 관련 라우터
 
 // 서버 실행
 app.listen(app.get('port'), () => {
