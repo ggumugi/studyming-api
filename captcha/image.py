@@ -1,37 +1,145 @@
-from flask import Flask, Response
-from captcha.image import ImageCaptcha
-import random  # random 모듈 추가
-import string  # string 모듈 추가
+# import mysql.connector
+# import random
+# import string
+# import base64
+# import uuid  # 고유한 토큰 생성을 위한 uuid 모듈
+# from flask import Flask, request, jsonify
+# from dotenv import load_dotenv
+# import os
+
+# # 환경 변수 로드
+# load_dotenv()
+
+# app = Flask(__name__)
+
+# # MySQL 연결 설정 (환경 변수 사용)
+# db = mysql.connector.connect(
+#     host=os.getenv("MYSQL_HOST"),
+#     user=os.getenv("MYSQL_USER"),
+#     password=os.getenv("MYSQL_PASSWORD"),
+#     database=os.getenv("MYSQL_DATABASE")
+# )
+# cursor = db.cursor()
+
+# # 고유한 토큰 생성 함수
+# def generateUniqueToken():
+#     while True:
+#         token = str(uuid.uuid4())  # 고유한 UUID를 생성
+#         cursor.execute("SELECT token FROM captchas WHERE token = %s", (token,))
+#         if not cursor.fetchone():  # 이미 존재하는 토큰이 없다면
+#             return token  # 유니크한 토큰 반환
+
+# # 보안문자 이미지 생성 함수 (Base64 인코딩된 문자열 반환)
+# def generateCaptchaImage(text):
+#     return base64.b64encode(f"CAPTCHA-{text}".encode()).decode()
+
+# # 보안문자 생성 API
+# @app.route('/captchaImage', methods=['GET'])
+# def generateCaptcha():
+#     captchaText = ''.join(random.choices(string.ascii_uppercase, k=6))
+#     captchaImage = generateCaptchaImage(captchaText)
+#     token = generateUniqueToken()  # 고유한 토큰 생성
+
+#     # 보안문자 DB 저장
+#     cursor.execute("INSERT INTO captchas (img, text, token) VALUES (%s, %s, %s)", (captchaImage, captchaText, token))
+#     db.commit()
+
+#     return jsonify({"img": captchaImage, "captchaText": captchaText, "token": token})  # 클라이언트에게 token 반환
+
+# # 보안문자 검증 API
+# @app.route('/verifyCaptcha', methods=['POST'])
+# def verifyCaptcha():
+#     data = request.json
+#     token = data.get("token")
+#     userInput = data.get("captcha").upper()
+
+#     # DB에서 보안문자 조회
+#     cursor.execute("SELECT text FROM captchas WHERE token = %s", (token,))
+#     result = cursor.fetchone()
+
+#     if result and result[0] == userInput:
+#         cursor.execute("DELETE FROM captchas WHERE token = %s", (token,))  # 검증 성공 시 삭제
+#         db.commit()
+#         return jsonify({"success": True, "message": "보안문자 인증 성공"})
+
+#     return jsonify({"success": False, "message": "보안문자 인증 실패"})
+
+# if __name__ == '__main__':
+#     app.run(debug=True, port=5000)
+
 import io
+import mysql.connector
+import random
+import string
+import base64
+import uuid  # 고유한 토큰 생성을 위한 uuid 모듈
+from captcha.image import ImageCaptcha  # 실제 이미지 생성용
+from flask import Flask, request, jsonify
+from flask_cors import CORS  # CORS 임포트 추가
+from dotenv import load_dotenv
+import os
+
+# 환경 변수 로드
+load_dotenv()
 
 app = Flask(__name__)
+CORS(app, supports_credentials=True)  # CORS 설정 추가
 
-@app.route('/captcha-image', methods=['GET'])
-def captcha_image():
+# MySQL 연결 설정 (환경 변수 사용)
+db = mysql.connector.connect(
+    host=os.getenv("MYSQL_HOST"),
+    user=os.getenv("MYSQL_USER"),
+    password=os.getenv("MYSQL_PASSWORD"),
+    database=os.getenv("MYSQL_DATABASE")
+)
+cursor = db.cursor()
+
+# 고유한 토큰 생성 함수
+def generateUniqueToken():
+    while True:
+        token = str(uuid.uuid4())  # 고유한 UUID를 생성
+        cursor.execute("SELECT token FROM captchas WHERE token = %s", (token,))
+        if not cursor.fetchone():  # 이미 존재하는 토큰이 없다면
+            return token  # 유니크한 토큰 반환
+
+# 보안문자 이미지 생성 함수 (실제 이미지 생성 후 Base64 인코딩)
+def generateCaptchaImage(text):
     image_captcha = ImageCaptcha(width=280, height=90)
-    
-    # 숫자 제외하고 영어 대문자만 사용
-    allowed_characters = string.ascii_uppercase  # 대문자만 사용
-    
-    # 보안문자 텍스트 생성
-    captcha_text = ''.join(random.choices(allowed_characters, k=6))
-    
-    # 보안문자 문자열 출력
-    print(f"Generated CAPTCHA Text: {captcha_text}")
-    
-    # 글자 간격, 폰트 크기 등을 설정하여 구분 확실하게 만들기
-    image_captcha.fonts = ['path_to_a_good_font.ttf']  # 다른 폰트 사용 (경로는 실제로 존재하는 폰트 파일로 변경)
-    image_captcha.random_noise = True  # 노이즈 추가
-    image_captcha.distort_noise = True  # 왜곡 추가
-    
-    # 보안문자 이미지 생성
-    image = image_captcha.generate_image(captcha_text)
-
-    # 이미지를 PNG 포맷으로 반환
+    image = image_captcha.generate_image(text)
     buf = io.BytesIO()
-    image.save(buf, format='PNG')
-    buf.seek(0)
-    return Response(buf, mimetype='image/png')
+    image.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+# 보안문자 생성 API
+@app.route('/captchaImage', methods=['GET'])
+def generateCaptcha():
+    captchaText = ''.join(random.choices(string.ascii_uppercase, k=6))
+    captchaImage = generateCaptchaImage(captchaText)
+    token = generateUniqueToken()  # 고유한 토큰 생성
+
+    # 보안문자 DB 저장
+    cursor.execute("INSERT INTO captchas (img, text, token) VALUES (%s, %s, %s)", (captchaImage, captchaText, token))
+    db.commit()
+
+    return jsonify({"img": captchaImage, "captchaText": captchaText, "token": token})  # 클라이언트에게 token 반환
+
+# 보안문자 검증 API
+@app.route('/verifyCaptcha', methods=['POST'])
+def verifyCaptcha():
+    data = request.json
+    token = data.get("token")
+    userInput = data.get("captcha").upper()
+
+    # DB에서 보안문자 조회
+    cursor.execute("SELECT text FROM captchas WHERE token = %s", (token,))
+    result = cursor.fetchone()
+
+    if result and result[0] == userInput:
+        cursor.execute("DELETE FROM captchas WHERE token = %s", (token,))  # 검증 성공 시 삭제
+        db.commit()
+        return jsonify({"success": True, "message": "보안문자 인증 성공"})
+
+    return jsonify({"success": False, "message": "보안문자 인증 실패"})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
