@@ -1,5 +1,9 @@
 const express = require('express')
+const multer = require('multer')
+const path = require('path')
+const fs = require('fs')
 const { Post } = require('../models') // Sequelize 모델
+
 const router = express.Router()
 
 // 게시글 목록 조회 (카테고리별 필터링 포함)
@@ -27,11 +31,36 @@ router.get('/:id', async (req, res) => {
    }
 })
 
+// 📌 `uploads` 폴더가 없으면 생성
+const uploadDir = path.join(__dirname, '../uploads')
+if (!fs.existsSync(uploadDir)) {
+   fs.mkdirSync(uploadDir, { recursive: true })
+}
+
+// 📌 파일 저장 설정
+const upload = multer({
+   storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+         cb(null, uploadDir)
+      },
+      filename: (req, file, cb) => {
+         const ext = path.extname(file.originalname)
+         cb(null, path.basename(file.originalname, ext) + '_' + Date.now() + ext)
+      },
+   }),
+   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB 제한
+})
+
 // 게시글 생성
 router.post('/', async (req, res) => {
    try {
       const { category, title, content, userId } = req.body
-      const newPost = await Post.create({ category, title, content, userId })
+      const newPost = await Post.create({
+         category,
+         title: req.body.title,
+         content: req.body.content,
+         userId: req.user.id,
+      })
       res.status(201).json(newPost)
    } catch (error) {
       console.error(error)
