@@ -36,7 +36,7 @@ sequelize
 app.use(cors({ origin: process.env.FRONTEND_APP_URL, credentials: true })) // CORS 설정
 app.use(morgan('dev'))
 app.use(express.json()) // JSON 데이터 파싱
-app.use(express.urlencoded({ extended: false }))
+app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser(process.env.COOKIE_SECRET))
 
 // 📌 정적 파일 제공: 업로드된 이미지 접근 가능하도록 설정
