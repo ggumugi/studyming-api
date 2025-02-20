@@ -15,6 +15,8 @@ const mindsetRouter = require('./routes/mindset')
 const goalsRouter = require('./routes/goals')
 const pointRouter = require('./routes/point')
 const itemRouter = require('./routes/item')
+const postRouter = require('./routes/post')
+const studygroupRouter = require('./routes/studygroup')
 
 const app = express()
 
@@ -36,7 +38,7 @@ sequelize
 app.use(cors({ origin: process.env.FRONTEND_APP_URL, credentials: true })) // CORS 설정
 app.use(morgan('dev'))
 app.use(express.json()) // JSON 데이터 파싱
-app.use(express.urlencoded({ extended: false }))
+app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser(process.env.COOKIE_SECRET))
 
 // 📌 정적 파일 제공: 업로드된 이미지 접근 가능하도록 설정
@@ -66,6 +68,8 @@ app.use('/mindset', mindsetRouter) // 홈화면 디데이 라우터
 app.use('/goals', goalsRouter) // 홈화면 디데이 라우터
 app.use('/point', pointRouter) // 포인트 관련 라우터
 app.use('/item', itemRouter) // 밍샵아이템 관련 라우터
+app.use('/post', postRouter) // 게시판
+app.use('/studygroup', studygroupRouter) // 스터디그룹 관련 라우터
 
 // 서버 실행
 app.listen(app.get('port'), () => {

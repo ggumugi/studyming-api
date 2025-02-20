@@ -330,7 +330,7 @@ router.post('/password-reset/check-email', async (req, res) => {
 })
 
 // ✅ 3. 비밀번호 찾기 - 인증 코드 검증 및 비밀번호 변경 페이지로 이동 (POST)
-router.post('/password-reset/verify-code', async (req, res) => {
+router.post('/password-reset/verify-codepw', async (req, res) => {
    const { email, verificationCodepw } = req.body // ✅ POST 방식이므로 req.body 사용
 
    if (!email || !verificationCodepw) {
@@ -340,8 +340,8 @@ router.post('/password-reset/verify-code', async (req, res) => {
    try {
       console.log('🔎 [DEBUG] 인증 코드 확인 요청:', email, verificationCodepw)
 
-      // 저장된 인증 코드 확인
-      if (verificationCodespw[email] !== verificationCodepw) {
+      // ✅ 저장된 인증 코드 확인 (변수명 일관성 유지)
+      if (!verificationCodespw[email] || verificationCodespw[email] !== verificationCodepw) {
          return res.status(400).json({ success: false, message: '인증 코드가 일치하지 않습니다.' })
       }
 
@@ -353,26 +353,28 @@ router.post('/password-reset/verify-code', async (req, res) => {
    }
 })
 
-// **4. 새 비밀번호 설정 (이메일 검증 없이 비밀번호만 변경)**
+// ✅ 4. 새 비밀번호 설정 (이메일을 별도 입력받지 않고 저장된 인증된 이메일 사용)
 router.patch('/password-reset/update-password', async (req, res) => {
-   const { newPassword } = req.body // 이메일은 생략하고 비밀번호만 받음
+   console.log('📡 서버에서 받은 요청:', req.body) // ✅ 디버깅 로그 추
+   const { email, newPassword } = req.body // ✅ 인증된 이메일을 받아서 사용
+
+   if (!email || !newPassword) {
+      return res.status(400).json({ success: false, message: '새 비밀번호를 입력해주세요.' }) // ✅ 메시지 수정
+   }
 
    try {
-      // 인증 코드 검증 과정에서 이미 이메일은 확인되었으므로, 현재 세션에 있는 사용자만 처리하면 됨
-      const user = req.user // 인증된 사용자 정보 (이메일이나 아이디는 인증 코드 검증에서 확인됨)
+      // 🔥 인증된 이메일을 기반으로 사용자 찾기
+      const user = await User.findOne({ where: { email } })
 
       if (!user) {
-         return res.status(400).json({ success: false, message: '사용자가 인증되지 않았습니다.' })
+         return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' })
       }
 
-      // 비밀번호 해싱
+      // ✅ 비밀번호 해싱 후 업데이트
       const hashedPassword = await bcrypt.hash(newPassword, 10)
+      await user.update({ password: hashedPassword })
 
-      // 비밀번호 업데이트
-      await user.update({ password: hashedPassword }) // `password` 필드를 업데이트
-
-      // 성공 메시지 반환
-      res.json({ success: true, message: '비밀번호가 성공적으로 변경되었습니다.' })
+      res.json({ success: true, message: '비밀번호가 성공적으로 변경되었습니다!' })
    } catch (error) {
       console.error('🚨 [ERROR] 비밀번호 변경 실패:', error)
       res.status(500).json({ success: false, message: '비밀번호 변경 중 오류가 발생했습니다.' })
@@ -396,11 +398,32 @@ router.get('/user', (req, res) => {
    }
 })
 
-// ✅ 로그아웃 처리
+//로그아웃
 router.get('/logout', (req, res) => {
+   if (!req.user) {
+      return res.status(401).json({ success: false, message: '이미 로그아웃되었습니다.' })
+   }
+
    req.logout((err) => {
-      if (err) return res.status(500).json({ error: 'Logout failed' })
-      res.redirect(process.env.FRONTEND_APP_URL)
+      if (err) {
+         return res.status(500).json({
+            success: false,
+            message: '로그아웃 중 오류가 발생했습니다.',
+            error: err,
+         })
+      }
+
+      // ✅ 세션 삭제
+      req.session.destroy((sessionErr) => {
+         if (sessionErr) {
+            return res.status(500).json({ success: false, message: '세션 삭제 실패' })
+         }
+
+         // ✅ 쿠키 삭제
+         res.clearCookie('connect.sid')
+
+         return res.json({ success: true, message: '로그아웃 성공' })
+      })
    })
 })
 
