@@ -4,6 +4,7 @@ const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
 const { Item } = require('../models')
+const { isAdmin, isLoggedIn } = require('./middlewares')
 
 // ✅ 'uploads/' 폴더가 없으면 자동 생성
 const uploadDir = path.join(__dirname, '../uploads')
@@ -44,6 +45,39 @@ router.post('/', upload.single('img'), async (req, res) => {
    } catch (error) {
       console.error('❌ 상품 등록 오류:', error) // ✅ 오류 확인
       res.status(500).json({ success: false, message: '아이템 등록 실패', error: error.message })
+   }
+})
+
+// ✅ 아이템 수정 API (관리자만 가능)
+router.put('/:id', isLoggedIn, isAdmin, upload.single('img'), async (req, res) => {
+   if (!req.user) {
+      return res.status(401).json({ success: false, message: '로그인이 필요합니다.' })
+   }
+
+   try {
+      const { id } = req.params
+      let { name, detail, price, limit, type } = req.body
+      const imgPath = req.file ? `/uploads/${req.file.filename}` : req.body.img
+
+      console.log('🔹 수정 요청 데이터:', req.body)
+      console.log('🔹 업로드된 파일:', req.file)
+
+      const item = await Item.findByPk(id)
+      if (!item) {
+         return res.status(404).json({ success: false, message: '상품을 찾을 수 없습니다.' })
+      }
+
+      price = Number(price)
+      if (isNaN(price)) {
+         return res.status(400).json({ success: false, message: '유효한 가격을 입력하세요.' })
+      }
+
+      await item.update({ name, detail, price, limit, type, img: imgPath })
+
+      return res.json({ success: true, message: '상품이 성공적으로 수정되었습니다.', item })
+   } catch (error) {
+      console.error('상품 수정 실패:', error)
+      return res.status(500).json({ success: false, message: '서버 오류 발생' })
    }
 })
 

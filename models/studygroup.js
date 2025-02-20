@@ -18,10 +18,6 @@ module.exports = class Studygroup extends Sequelize.Model {
                allowNull: false,
                defaultValue: 1,
             },
-            studyDay: {
-               type: Sequelize.DATEONLY,
-               allowNull: true,
-            },
             startTime: {
                type: Sequelize.TIME,
                allowNull: true,
@@ -32,7 +28,7 @@ module.exports = class Studygroup extends Sequelize.Model {
             },
             startDate: {
                type: Sequelize.DATEONLY,
-               allowNull: false,
+               allowNull: true,
             },
             endDate: {
                type: Sequelize.DATEONLY,
@@ -55,8 +51,7 @@ module.exports = class Studygroup extends Sequelize.Model {
             },
             password: {
                type: Sequelize.STRING(100),
-               allowNull: false,
-               defaultValue: false,
+               allowNull: true,
             },
             open: {
                type: Sequelize.BOOLEAN,
@@ -74,11 +69,11 @@ module.exports = class Studygroup extends Sequelize.Model {
                defaultValue: false,
             },
             capInterval: {
-               type: Sequelize.TIME,
+               type: Sequelize.INTEGER,
                allowNull: true,
             },
-            studyDays: {
-               type: Sequelize.STRING(255),
+            timeGoal: {
+               type: Sequelize.TIME,
                allowNull: true,
             },
          },
