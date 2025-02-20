@@ -15,6 +15,7 @@ const mindsetRouter = require('./routes/mindset')
 const goalsRouter = require('./routes/goals')
 const pointRouter = require('./routes/point')
 const itemRouter = require('./routes/item')
+const studygroupRouter = require('./routes/studygroup')
 
 const app = express()
 
@@ -66,6 +67,7 @@ app.use('/mindset', mindsetRouter) // 홈화면 디데이 라우터
 app.use('/goals', goalsRouter) // 홈화면 디데이 라우터
 app.use('/point', pointRouter) // 포인트 관련 라우터
 app.use('/item', itemRouter) // 밍샵아이템 관련 라우터
+app.use('/studygroup', studygroupRouter) // 스터디그룹 관련 라우터
 
 // 서버 실행
 app.listen(app.get('port'), () => {
