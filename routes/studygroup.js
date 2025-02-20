@@ -1,14 +1,14 @@
 // studygroup.js (백엔드 라우터)
 const express = require('express')
-const { verifyToken } = require('./middlewares')
 const { Studygroup } = require('../models')
 const router = express.Router()
 
 // 스터디 그룹 생성
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', async (req, res) => {
    try {
       const studygroup = await Studygroup.create(req.body)
       res.status(201).json({ success: true, studygroup })
+      console.log(req.body)
    } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, message: '스터디 그룹 생성 실패', error })
@@ -16,7 +16,7 @@ router.post('/', verifyToken, async (req, res) => {
 })
 
 // 전체 스터디 그룹 조회
-router.get('/', verifyToken, async (req, res) => {
+router.get('/', async (req, res) => {
    try {
       const studygroups = await Studygroup.findAll()
       res.json({ success: true, studygroups })
@@ -27,7 +27,7 @@ router.get('/', verifyToken, async (req, res) => {
 })
 
 // 특정 스터디 그룹 조회
-router.get('/:id', verifyToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
    try {
       const studygroup = await Studygroup.findByPk(req.params.id)
       if (!studygroup) {
@@ -41,7 +41,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 })
 
 // 스터디 그룹 수정
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', async (req, res) => {
    try {
       const studygroup = await Studygroup.findByPk(req.params.id)
       if (!studygroup) {
@@ -56,7 +56,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 })
 
 // 스터디 그룹 삭제
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', async (req, res) => {
    try {
       const studygroup = await Studygroup.findByPk(req.params.id)
       if (!studygroup) {
