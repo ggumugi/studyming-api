@@ -118,10 +118,6 @@ router.get('/', async (req, res) => {
                model: User,
                attributes: ['id', 'nick', 'email'],
             },
-            {
-               model: Hashtag,
-               attributes: ['title'],
-            },
          ],
       })
 
