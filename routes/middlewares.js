@@ -7,25 +7,27 @@ exports.isLoggedIn = (req, res, next) => {
    if (req.isAuthenticated()) {
       // ✅ 로그인 되어 있을 경우 요청 진행
       next()
+   } else {
+      // ❌ 로그인 안 되어 있으면 에러 응답
+      res.status(401).json({
+         success: false,
+         message: '로그인이 필요합니다.',
+      })
    }
-   // ❌ 로그인 안 되어 있으면 에러 응답
-   return res.status(401).json({
-      success: false,
-      message: '로그인이 필요합니다.',
-   })
 }
 
 //비로그인 상태 확인 미들웨어
 exports.isNotLoggedIn = (req, res, next) => {
    if (!req.isAuthenticated()) {
       //로그인 되지 않았을 경우 다음 미들웨어로 이동
-      return next()
+      next()
+   } else {
+      // ❌ 이미 로그인한 사용자인 경우 반환
+      res.status(403).json({
+         success: false,
+         message: '이미 로그인한 상태입니다.',
+      })
    }
-   // ❌ 이미 로그인한 사용자인 경우 반환
-   return res.status(403).json({
-      success: false,
-      message: '이미 로그인한 상태입니다.',
-   })
 }
 
 // 관리자 권한 확인 미들웨어
