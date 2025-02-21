@@ -3,7 +3,7 @@ const router = express.Router()
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
-const { Item } = require('../models')
+const { Item, Myitem } = require('../models')
 const { isAdmin, isLoggedIn } = require('./middlewares')
 
 // ✅ 'uploads/' 폴더가 없으면 자동 생성
@@ -92,6 +92,40 @@ router.get('/', async (req, res) => {
    } catch (error) {
       console.error('❌ 아이템 조회 오류:', error)
       res.status(500).json({ success: false, message: '아이템 조회 실패', error: error.message })
+   }
+})
+
+// ✅ 사용자의 아이템 목록 가져오기
+router.get('/myitems', async (req, res) => {
+   try {
+      console.log('🔹 요청된 사용자 ID:', req.user.id)
+
+      const myItems = await Myitem.findAll({
+         where: { userId: req.user.id },
+         include: [
+            {
+               model: Item,
+               attributes: ['name', 'detail', 'img'],
+            },
+         ],
+      })
+
+      if (!myItems || myItems.length === 0) {
+         return res.status(200).json({ success: true, items: [] }) // ✅ 빈 배열 반환
+      }
+
+      const formattedItems = myItems.map((item) => ({
+         id: item.id,
+         title: item.Item.name, // ✅ 아이템 이름
+         description: item.Item.detail, // ✅ 아이템 설명
+         img: item.Item.img ? `http://localhost:8000${item.Item.img}` : '/img/default.png', // ✅ 이미지
+         limit: item.limit, // ✅ 남은 기간
+      }))
+
+      res.status(200).json({ success: true, items: formattedItems })
+   } catch (error) {
+      console.error('❌ 아이템 내역 조회 중 오류 발생:', error)
+      res.status(500).json({ success: false, message: '아이템 내역 조회 중 오류 발생' })
    }
 })
 

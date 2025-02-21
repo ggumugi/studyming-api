@@ -17,8 +17,11 @@ const pointRouter = require('./routes/point')
 const itemRouter = require('./routes/item')
 const postRouter = require('./routes/post')
 const studygroupRouter = require('./routes/studygroup')
+const commentRouter = require('./routes/comment')
 
 const app = express()
+
+require('./schedule/schedule') // ✅ 스케줄링 작업 실행
 
 passportConfig() // Passport 설정을 호출합니다.
 
@@ -33,7 +36,10 @@ sequelize
    .catch((err) => {
       console.error('데이터베이스 연결 실패:', err)
    })
-
+app.use((req, res, next) => {
+   console.log('🔍 [DEBUG] 요청마다 세션 확인:', req.session)
+   next()
+})
 // 미들웨어 설정
 app.use(cors({ origin: process.env.FRONTEND_APP_URL, credentials: true })) // CORS 설정
 app.use(morgan('dev'))
@@ -48,10 +54,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'))) // ✅ 추�
 const sessionMiddleware = session({
    secret: process.env.COOKIE_SECRET,
    resave: false,
-   saveUninitialized: true,
+   saveUninitialized: true, //빈세션 방지 원래 true였는데 로그아웃 세션관련때문에 바꿈
    cookie: {
       httpOnly: true,
       secure: false, // 개발 환경에서 secure: false
+      maxAge: 1000 * 60 * 60 * 24, // ✅ 세션 유지 시간 (24시간)
    },
 })
 app.use(sessionMiddleware)
@@ -70,6 +77,7 @@ app.use('/point', pointRouter) // 포인트 관련 라우터
 app.use('/item', itemRouter) // 밍샵아이템 관련 라우터
 app.use('/post', postRouter) // 게시판
 app.use('/studygroup', studygroupRouter) // 스터디그룹 관련 라우터
+app.use('./comment', commentRouter)
 
 // 서버 실행
 app.listen(app.get('port'), () => {
