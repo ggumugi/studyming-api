@@ -99,8 +99,14 @@ router.get('/', async (req, res) => {
       const posts = await Post.findAll({
          limit,
          offset,
-         order: [['createdAt', 'DESC']],
-         include: [{ model: User, attributes: ['id', 'nickname', 'email'] }],
+         order: [['createdAt', 'DESC']], // 최신날짜 순으로 가져온다
+         // 게시글을 작성한 사람과 게시글에 작성된 해시태그를 같이 가져온다
+         include: [
+            {
+               model: User,
+               attributes: ['id', 'nick', 'email'],
+            },
+         ],
       })
 
       console.log('✅ 반환할 게시물:', posts)
