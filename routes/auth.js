@@ -112,6 +112,8 @@ router.get('/check-nickname', async (req, res) => {
 
 //자체로그인 localhost:8000/auth/login
 router.post('/login', isNotLoggedIn, async (req, res, next) => {
+   console.log('🔍 로그인 후 세션 확인:', req.session) // ✅ 세션 확인
+   console.log('🔍 로그인 후 사용자 정보:', req.user) // ✅ 유저 정보 확인
    passport.authenticate('local', (authError, user, info) => {
       if (authError) {
          //로그인 인증 중 에러 발생시
@@ -391,19 +393,23 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
 
 // ✅ 로그인한 사용자 정보 확인
 router.get('/user', (req, res) => {
+   console.log('🔍 로그인 상태 확인: req.user ->', req.user) // ✅ `req.user` 확인
+   console.log('🔍 현재 세션 정보:', req.session) // ✅ `req.session` 확인
    if (req.isAuthenticated()) {
-      res.json(req.user)
+      res.json({
+         isAuthenticated: true,
+         user: {
+            id: req.user.id,
+            nickname: req.user.nickname,
+         },
+      })
    } else {
-      res.status(401).json({ message: 'Unauthorized' })
+      res.json({ isAuthenticated: false })
    }
 })
 
 //로그아웃
-router.get('/logout', (req, res) => {
-   if (!req.user) {
-      return res.status(401).json({ success: false, message: '이미 로그아웃되었습니다.' })
-   }
-
+router.get('/logout', isLoggedIn, (req, res) => {
    req.logout((err) => {
       if (err) {
          return res.status(500).json({
