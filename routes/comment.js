@@ -3,7 +3,7 @@
 const express = require('express')
 const multer = require('multer')
 const { Comment, User, Post, Images } = require('../models')
-const { isLoggedIn } = require('../middlewares') // ✅ 로그인한 사용자만 댓글 작성 가능
+const { isLoggedIn } = require('../routes/middlewares') // ✅ 로그인한 사용자만 댓글 작성 가능
 const path = require('path')
 const fs = require('fs')
 
