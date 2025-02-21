@@ -42,18 +42,19 @@ router.post('/', isLoggedIn, upload.array('images', 10), async (req, res) => {
       console.log('파일정보:', req.files) // req.file → req.files로 변경
 
       // 파일 체크 로직 수정
-      if (!req.files || req.files.length === 0) {
+      /*       if (!req.files || req.files.length === 0) {
          return res.status(400).json({
             success: false,
             message: '파일을 업로드해주세요.',
          })
-      }
+      } */
 
       const post = await Post.create({
          content: req.body.content,
          title: req.body.title,
          category: req.body.category,
          userId: req.user.id,
+         // userId: 1,
       })
 
       // 이미지 저장 로직
