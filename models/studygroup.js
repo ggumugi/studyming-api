@@ -73,7 +73,7 @@ module.exports = class Studygroup extends Sequelize.Model {
                allowNull: true,
             },
             timeGoal: {
-               type: Sequelize.TIME,
+               type: Sequelize.INTEGER,
                allowNull: true,
             },
          },
