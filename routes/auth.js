@@ -393,14 +393,18 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
 
 // ✅ 로그인한 사용자 정보 확인
 router.get('/user', (req, res) => {
-   console.log('🔍 로그인 상태 확인: req.user ->', req.user) // ✅ `req.user` 확인
-   console.log('🔍 현재 세션 정보:', req.session) // ✅ `req.session` 확인
    if (req.isAuthenticated()) {
       res.json({
          isAuthenticated: true,
          user: {
             id: req.user.id,
             nickname: req.user.nickname,
+            name: req.user.name,
+            email: req.user.email,
+            status: req.user.status,
+            gender: req.user.gender,
+            birth: req.user.birth,
+            role: req.user.role,
          },
       })
    } else {

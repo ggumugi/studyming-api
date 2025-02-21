@@ -11,7 +11,7 @@ module.exports = class Purchase extends Sequelize.Model {
          },
          {
             sequelize,
-            timestamps: false, //createAt, updateAt ..등 자동 생성
+            timestamps: true, //createAt, updateAt ..등 자동 생성
             underscored: false,
             modelName: 'Purchase',
             tableName: 'purchases',
