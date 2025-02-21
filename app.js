@@ -20,6 +20,8 @@ const studygroupRouter = require('./routes/studygroup')
 
 const app = express()
 
+require('./schedule/schedule') // ✅ 스케줄링 작업 실행
+
 passportConfig() // Passport 설정을 호출합니다.
 
 app.set('port', process.env.PORT || 8002)

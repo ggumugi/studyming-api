@@ -12,6 +12,11 @@ module.exports = class Pointhistory extends Sequelize.Model {
                type: Sequelize.ENUM('use', 'stack', 'charge'),
                allowNull: false,
             },
+            restPoint: {
+               type: Sequelize.INTEGER,
+               allowNull: false,
+               defaultValue: 0,
+            },
          },
          {
             sequelize,
