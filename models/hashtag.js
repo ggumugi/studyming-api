@@ -24,6 +24,6 @@ module.exports = class Hashtag extends Sequelize.Model {
    }
 
    static associate(db) {
-      Hashtag.belongsToMany(db.Studygroup, { foreignKey: 'tagId', targetKey: 'id', as: 'Tagedgroup', through: 'Grouptag' })
+      Hashtag.belongsToMany(db.Studygroup, { foreignKey: 'tagId', as: 'Tagedgroup', through: 'Grouptag' })
    }
 }
