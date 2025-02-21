@@ -109,8 +109,6 @@ router.get('/', async (req, res) => {
          ],
       })
 
-      console.log('✅ 반환할 게시물:', posts)
-
       res.json({
          success: true,
          posts: posts || [],
