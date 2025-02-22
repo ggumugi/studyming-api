@@ -200,7 +200,7 @@ router.post('/charge', async (req, res) => {
 router.post('/send', async (req, res) => {
    const t = await sequelize.transaction()
    try {
-      const { receiverId, amount } = req.body
+      const { receiverNickname, amount } = req.body
 
       if (amount <= 0) throw new Error('선물할 포인트는 0보다 커야 합니다.')
 
@@ -213,8 +213,9 @@ router.post('/send', async (req, res) => {
       if (!sender || !sender.Point) throw new Error('보낸 사람의 포인트 정보가 없습니다.')
       if (sender.Point.point < amount) throw new Error('포인트가 부족합니다.')
 
-      // 받는 사람 조회
-      const receiver = await User.findByPk(receiverId, {
+      // 받는 사람을 닉네임으로 조회
+      const receiver = await User.findOne({
+         where: { nickname: receiverNickname }, // 닉네임으로 검색
          include: [{ model: Point }],
          transaction: t,
          lock: t.LOCK.UPDATE,
