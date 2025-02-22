@@ -1,7 +1,7 @@
 // studygroup.js (백엔드 라우터)
 const express = require('express')
-const { Studygroup, Groupmember, Grouptime, Hashtag, Liked, User } = require('../models')
 const router = express.Router()
+const { Studygroup, Groupmember, Grouptime, Hashtag, Liked, User } = require('../models')
 
 // 스터디 그룹 생성
 router.post('/', async (req, res) => {
@@ -79,7 +79,7 @@ router.get('/:id', async (req, res) => {
          return res.status(404).json({ success: false, message: '스터디 그룹을 찾을 수 없음' })
       }
 
-      res.json({ success: true, studygroup })
+      res.json({ success: true, studygroup, message: '게시물 조회' })
    } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, message: '스터디 그룹 조회 실패', error })
