@@ -18,6 +18,7 @@ const itemRouter = require('./routes/item')
 const postRouter = require('./routes/post')
 const studygroupRouter = require('./routes/studygroup')
 const commentRouter = require('./routes/comment')
+const adminpostRouter = require('./routes/adminpost')
 
 const app = express()
 
@@ -77,7 +78,8 @@ app.use('/point', pointRouter) // 포인트 관련 라우터
 app.use('/item', itemRouter) // 밍샵아이템 관련 라우터
 app.use('/post', postRouter) // 게시판
 app.use('/studygroup', studygroupRouter) // 스터디그룹 관련 라우터
-app.use('./comment', commentRouter)
+app.use('/comment', commentRouter)
+app.use('/adminpost', adminpostRouter)
 
 // 서버 실행
 app.listen(app.get('port'), () => {

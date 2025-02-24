@@ -1,7 +1,7 @@
 // studygroup.js (백엔드 라우터)
 const express = require('express')
-const { Studygroup, Groupmember, Grouptime, Hashtag, Liked, User } = require('../models')
 const router = express.Router()
+const { Studygroup, Groupmember, Grouptime, Hashtag, Liked, Channel, User } = require('../models')
 
 // 스터디 그룹 생성
 router.post('/', async (req, res) => {
@@ -13,6 +13,7 @@ router.post('/', async (req, res) => {
       await Grouptime.create({
          time: '00:00:00', // 기본값 설정
          groupId: studygroup.id, // 스터디 그룹 ID 참조
+         userId: studygroup.createdBy, // 생성자 ID 참조
       })
 
       // Liked 생성 (스터디 그룹 ID 참조)
@@ -26,6 +27,13 @@ router.post('/', async (req, res) => {
          role: 'leader', // 생성자는 리더로 설정
          groupId: studygroup.id, // 스터디 그룹 ID 참조
          userId: studygroup.createdBy, // 생성자 ID 참조
+      })
+      // Channel 생성
+      await Channel.create({
+         groupId: studygroup.id,
+         sharedChannel: null,
+         camChannel: null,
+         voiceChannel: null,
       })
 
       // 해시태그 처리
@@ -70,7 +78,7 @@ router.get('/:id', async (req, res) => {
                model: Hashtag, // Hashtag 모델 조인
                as: 'Hashtaged', // Studygroup 모델에서 정의한 alias
                attributes: ['name'], // 해시태그 이름만 가져오기
-               through: { attributes: [] }, // Grouptag 테이블은 포함하지 않음
+               through: { attributes: [] },
             },
          ],
       })
@@ -79,7 +87,7 @@ router.get('/:id', async (req, res) => {
          return res.status(404).json({ success: false, message: '스터디 그룹을 찾을 수 없음' })
       }
 
-      res.json({ success: true, studygroup })
+      res.json({ success: true, studygroup, message: '게시물 조회' })
    } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, message: '스터디 그룹 조회 실패', error })
@@ -93,8 +101,30 @@ router.put('/:id', async (req, res) => {
       if (!studygroup) {
          return res.status(404).json({ success: false, message: '스터디 그룹을 찾을 수 없음' })
       }
+
+      // 스터디 그룹 정보 업데이트
       await studygroup.update(req.body)
-      res.json({ success: true, message: '스터디 그룹 수정 완료' })
+
+      // 해시태그 처리
+      const hashtags = req.body.hashtags || [] // 해시태그 리스트 가져오기
+      if (hashtags.length > 0) {
+         // 기존 해시태그 삭제
+         await studygroup.setHashtaged([])
+
+         // 새로운 해시태그 추가
+         for (const tag of hashtags) {
+            // 해시태그가 이미 존재하는지 확인
+            const [hashtag, created] = await Hashtag.findOrCreate({
+               where: { name: tag }, // name 컬럼에서 해당 단어 검색
+               defaults: { name: tag }, // 없으면 생성
+            })
+
+            // Grouptag 테이블에 연결
+            await studygroup.addHashtaged(hashtag)
+         }
+      }
+
+      res.json({ success: true, message: '스터디 그룹 수정 완료', studygroup })
    } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, message: '스터디 그룹 수정 실패', error })
