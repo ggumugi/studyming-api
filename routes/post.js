@@ -2,7 +2,7 @@ const express = require('express')
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
-const { Post, Images, User } = require('../models')
+const { Post, Images, User, Comment } = require('../models')
 const { isLoggedIn } = require('./middlewares')
 
 const router = express.Router()
@@ -187,8 +187,7 @@ router.delete('/:id', isLoggedIn, async (req, res) => {
 //특정 게시물 불러오기(id로 게시물 조회) localhost:8000/post/:id
 router.get('/:id', async (req, res) => {
    try {
-      const post = await Post.findOne({
-         where: { id: req.params.id },
+      const post = await Post.findByPk(req.params.id, {
          include: [
             {
                model: User,
@@ -197,6 +196,10 @@ router.get('/:id', async (req, res) => {
             {
                model: Images,
                attributes: ['id', 'path'],
+            },
+            {
+               model: Comment,
+               attributes: [],
             },
          ],
       })
