@@ -4,8 +4,17 @@ module.exports = class Banned extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
          {
+            startDate: {
+               type: Sequelize.DATE,
+               allowNull: false,
+            },
             endDate: {
                type: Sequelize.DATE,
+               allowNull: false,
+            },
+            reason: {
+               // ✅ 추가: 신고 사유 저장
+               type: Sequelize.STRING(255),
                allowNull: false,
             },
          },
