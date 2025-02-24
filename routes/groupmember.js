@@ -24,9 +24,9 @@ router.post('/:groupId', async (req, res) => {
       })
 
       await Grouptime.create({
-         role: 'leader', // 생성자는 리더로 설정
-         groupId: studygroup.id, // 스터디 그룹 ID 참조
-         userId: studygroup.createdBy, // 생성자 ID 참조
+         time: '00:00:00', // 생성자는 리더로 설정
+         groupId,
+         userId,
       })
 
       res.status(201).json({ success: true, groupmember })
