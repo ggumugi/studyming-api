@@ -6,6 +6,7 @@ const crypto = require('crypto') // 랜덤 인증 코드 생성
 const { isLoggedIn, isNotLoggedIn } = require('./middlewares')
 const User = require('../models/user')
 const Auth = require('../models/auth')
+const Point = require('../models/point')
 
 const router = express.Router()
 //회원가입 localhost:8000/auth/signup
@@ -36,6 +37,11 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
          status: 'ACTIVE',
          gender: 'NONE',
          birth: null,
+      })
+      // ✅ 회원가입 시 포인트 자동 생성 (기본값 0)
+      await Point.create({
+         userId: newUser.id, // 생성된 사용자의 ID 사용
+         point: 0, // 기본 포인트 0 설정
       })
 
       res.status(201).json({

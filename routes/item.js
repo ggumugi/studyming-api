@@ -129,4 +129,25 @@ router.get('/myitems', async (req, res) => {
    }
 })
 
+// ✅ 아이템 삭제 API 추가
+router.delete('/:id', isLoggedIn, isAdmin, async (req, res) => {
+   try {
+      const { id } = req.params
+
+      // ✅ Sequelize에서는 findByPk 사용
+      const item = await Item.findByPk(id)
+      if (!item) {
+         return res.status(404).json({ message: '아이템을 찾을 수 없습니다.' })
+      }
+
+      // ✅ Sequelize 삭제 메서드 사용
+      await item.destroy()
+
+      res.status(200).json({ message: '아이템이 성공적으로 삭제되었습니다.' })
+   } catch (error) {
+      console.error('아이템 삭제 중 오류 발생:', error)
+      res.status(500).json({ message: '서버 오류가 발생했습니다.' })
+   }
+})
+
 module.exports = router
