@@ -1,7 +1,7 @@
 // studygroup.js (백엔드 라우터)
 const express = require('express')
 const router = express.Router()
-const { Studygroup, Groupmember, Grouptime, Hashtag, Liked, User } = require('../models')
+const { Studygroup, Groupmember, Grouptime, Hashtag, Liked, Channel, User } = require('../models')
 
 // 스터디 그룹 생성
 router.post('/', async (req, res) => {
@@ -13,6 +13,7 @@ router.post('/', async (req, res) => {
       await Grouptime.create({
          time: '00:00:00', // 기본값 설정
          groupId: studygroup.id, // 스터디 그룹 ID 참조
+         userId: studygroup.createdBy, // 생성자 ID 참조
       })
 
       // Liked 생성 (스터디 그룹 ID 참조)
@@ -26,6 +27,13 @@ router.post('/', async (req, res) => {
          role: 'leader', // 생성자는 리더로 설정
          groupId: studygroup.id, // 스터디 그룹 ID 참조
          userId: studygroup.createdBy, // 생성자 ID 참조
+      })
+      // Channel 생성
+      await Channel.create({
+         groupId: studygroup.id,
+         sharedChannel: null,
+         camChannel: null,
+         voiceChannel: null,
       })
 
       // 해시태그 처리
