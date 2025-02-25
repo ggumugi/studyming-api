@@ -19,6 +19,7 @@ const postRouter = require('./routes/post')
 const studygroupRouter = require('./routes/studygroup')
 const commentRouter = require('./routes/comment')
 const adminpostRouter = require('./routes/adminpost')
+const bannedRouter = require('./routes/banned')
 
 const app = express()
 
@@ -80,6 +81,7 @@ app.use('/post', postRouter) // 게시판
 app.use('/studygroup', studygroupRouter) // 스터디그룹 관련 라우터
 app.use('/comment', commentRouter)
 app.use('/adminpost', adminpostRouter)
+app.use('/banned', bannedRouter) // 벤 관련 라우터
 
 // 서버 실행
 app.listen(app.get('port'), () => {

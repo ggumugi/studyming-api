@@ -72,7 +72,11 @@ module.exports = class User extends Sequelize.Model {
       User.hasMany(db.Liked, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
       User.hasOne(db.Admin, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
       User.hasMany(db.AdminAction, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
-      User.hasMany(db.Banned, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+      // 🚀 신고당한 유저 (정지된 유저)
+      User.hasMany(db.Banned, { foreignKey: 'userId', sourceKey: 'id', as: 'BansReceived' })
+
+      // 🚀 신고한 유저 (신고를 넣은 유저)
+      User.hasMany(db.Banned, { foreignKey: 'reportedById', sourceKey: 'id', as: 'BansGiven' })
       User.hasOne(db.Alltime, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
       User.hasMany(db.Grouptime, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
       User.hasMany(db.Auth, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
