@@ -146,4 +146,27 @@ router.delete('/:id', async (req, res) => {
    }
 })
 
+// ✅ 특정 스터디 그룹의 해시태그 가져오기
+router.get('/:groupId/tags', async (req, res) => {
+   try {
+      const { groupId } = req.params
+
+      const studygroup = await Studygroup.findByPk(groupId, {
+         include: {
+            model: Hashtag, // ✅ 연결된 해시태그 포함
+            through: { attributes: [] }, // ✅ 중간 테이블 필드 제외
+         },
+      })
+
+      if (!studygroup) {
+         return res.status(404).json({ success: false, message: '스터디 그룹을 찾을 수 없습니다.' })
+      }
+
+      return res.status(200).json({ success: true, tags: studygroup.Hashtags })
+   } catch (error) {
+      console.error('❌ 해시태그 조회 중 오류:', error)
+      res.status(500).json({ success: false, message: '해시태그 조회 실패', error })
+   }
+})
+
 module.exports = router
