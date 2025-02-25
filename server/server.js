@@ -1,3 +1,4 @@
+// server.js
 const express = require('express')
 const http = require('http')
 const socketIo = require('socket.io')
@@ -6,10 +7,14 @@ const app = express()
 const server = http.createServer(app)
 const io = socketIo(server)
 
+// Express 라우트 설정
+app.get('/', (req, res) => {
+   res.send('서버가 실행 중입니다.')
+})
 io.on('connection', (socket) => {
    socket.on('join_room', (roomId) => {
       socket.join(roomId)
-      socket.to(roomId).emit('user_joined', socket.id)
+      socket.to(roomId).emit('userJoined', socket.id)
    })
 
    socket.on('offer', (data) => {
@@ -25,6 +30,4 @@ io.on('connection', (socket) => {
    })
 })
 
-server.listen(3000, () => {
-   console.log('서버가 실행 중입니다.')
-})
+module.exports = server
