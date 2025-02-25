@@ -56,6 +56,11 @@ router.patch('/participate/:groupId', async (req, res) => {
    try {
       const { groupId } = req.params
       const userId = req.user.id // 로그인한 사용자의 ID
+      const { status } = req.body // 입력된 상태 받기
+
+      if (!['on', 'off'].includes(status)) {
+         return res.status(400).json({ success: false, message: '잘못된 상태 값입니다.' })
+      }
 
       // 해당 그룹의 멤버 정보 조회
       const groupmember = await Groupmember.findOne({
@@ -67,8 +72,8 @@ router.patch('/participate/:groupId', async (req, res) => {
          return res.status(404).json({ success: false, message: '그룹 멤버를 찾을 수 없음' })
       }
 
-      // 상태를 'on'으로 변경
-      await groupmember.update({ status: 'on' })
+      // 상태를 변수에 따라 변경
+      await groupmember.update({ status })
 
       res.json({ success: true, message: '그룹 멤버 상태가 변경되었습니다.', groupmember })
    } catch (error) {
