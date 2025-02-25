@@ -2,11 +2,11 @@ const express = require('express')
 const router = express.Router()
 const { Studygroup, Groupmember, User, Grouptime } = require('../models')
 
-// 그룹 멤버 참여
+// 그룹 멤버 가입
 router.post('/:groupId', async (req, res) => {
    try {
       const { groupId } = req.params
-      const { userId, role = 'member' } = req.body
+      const userId = req.user.id
       const now = new Date()
       const access = now.toISOString().slice(0, 16).replace('T', ' ') // "2023-10-25 12:34"
 
@@ -14,7 +14,7 @@ router.post('/:groupId', async (req, res) => {
       const groupmember = await Groupmember.create({
          groupId,
          userId,
-         role,
+         role: 'member',
          status: 'on',
          access,
          rewards: 0,
@@ -24,7 +24,7 @@ router.post('/:groupId', async (req, res) => {
       })
 
       await Grouptime.create({
-         time: '00:00:00', // 생성자는 리더로 설정
+         time: '00:00:00',
          groupId,
          userId,
       })
