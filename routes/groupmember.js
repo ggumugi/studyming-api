@@ -7,16 +7,25 @@ router.post('/:groupId', async (req, res) => {
    try {
       const { groupId } = req.params
       const userId = req.user.id
-      const now = new Date()
-      const access = now.toISOString().slice(0, 16).replace('T', ' ') // "2023-10-25 12:34"
+      // const now = new Date()
+      // const access = now.toISOString().slice(0, 16).replace('T', ' ') // "2023-10-25 12:34"
+
+      // 해당 그룹에 이미 가입된 유저인지 확인
+      const existingMember = await Groupmember.findOne({
+         where: { groupId, userId },
+      })
+
+      if (existingMember) {
+         return res.status(400).json({ success: false, message: '이미 가입된 유저입니다.' })
+      }
 
       // 그룹 멤버 생성
       const groupmember = await Groupmember.create({
          groupId,
          userId,
          role: 'member',
-         status: 'on',
-         access,
+         status: 'off',
+         access: null,
          rewards: 0,
          shareState: false,
          camState: false,
@@ -29,10 +38,42 @@ router.post('/:groupId', async (req, res) => {
          userId,
       })
 
+      // Studygroup의 countMembers 값 증가
+      await Studygroup.increment('countMembers', {
+         by: 1,
+         where: { id: groupId }, // 그룹 ID에 해당하는 Studygroup을 찾음
+      })
+
       res.status(201).json({ success: true, groupmember })
    } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, message: '그룹 멤버 참여 실패', error })
+   }
+})
+
+// 그룹 멤버 참여 상태 업데이트
+router.patch('/participate/:groupId', async (req, res) => {
+   try {
+      const { groupId } = req.params
+      const userId = req.user.id // 로그인한 사용자의 ID
+
+      // 해당 그룹의 멤버 정보 조회
+      const groupmember = await Groupmember.findOne({
+         where: { groupId, userId },
+      })
+
+      // 그룹 멤버가 존재하는지 확인
+      if (!groupmember) {
+         return res.status(404).json({ success: false, message: '그룹 멤버를 찾을 수 없음' })
+      }
+
+      // 상태를 'on'으로 변경
+      await groupmember.update({ status: 'on' })
+
+      res.json({ success: true, message: '그룹 멤버 상태가 변경되었습니다.', groupmember })
+   } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, message: '그룹 멤버 상태 변경 실패', error })
    }
 })
 

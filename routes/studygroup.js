@@ -27,8 +27,8 @@ router.post('/', async (req, res) => {
          groupId: studygroup.id, // 스터디 그룹 ID 참조
          userId: studygroup.createdBy, // 생성자 ID 참조
          role: 'leader',
-         status: 'on',
-         access,
+         status: 'off',
+         access: null,
          rewards: 0,
          shareState: false,
          camState: false,
