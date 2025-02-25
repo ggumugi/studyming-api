@@ -1,50 +1,91 @@
-//스터디 그룹 좋아요 기능 라우터
-
 const express = require('express')
 const router = express.Router()
-const { Liked } = require('../models')
-//const { isLoggedIn } = require('./middlewares') // ✅ 로그인한 사용자만 좋아요 가능
-// ✅ 스터디 그룹 좋아요 기능 (좋아요 추가 & 취소)
+const { Studygroup, User } = require('../models') // ✅ Liked 대신 Likedgroup 사용
+const { isLoggedIn } = require('./middlewares') // ✅ 로그인한 사용자만 좋아요 가능
 
-router.post('/:id/like', async (req, res) => {
+// ✅ 좋아요 추가 또는 삭제 (토글 기능)
+router.post('/:groupId', isLoggedIn, async (req, res) => {
    try {
-      const { id } = req.params // 스터디 그룹 ID
-      const { user } = req.body // 좋아요 누른 유저 정보
+      const { groupId } = req.params
+      const userId = req.user.id // 로그인한 유저 ID
 
-      // 스터디 그룹이 존재하는지 확인
-      const studygroup = await studygroup.findByPk(id)
+      // ✅ Studygroup 찾기
+      const studygroup = await Studygroup.findByPk(groupId)
       if (!studygroup) {
-         return res.status(404).json({ success: false, message: '스터디 그룹을 찾을 수 없습니다.' })
+         return res.status(404).json({ success: false, message: '존재하지 않는 스터디 그룹입니다.' })
       }
 
-      // Liked 테이블에서 해당 그룹의 좋아요 정보 가져오기
-      const likedData = await Liked.findOne({ where: { groupId: id } })
-
-      if (!likedData) {
-         return res.status(404).json({ success: false, message: '좋아요 정보를 찾을 수 없습니다.' })
-      }
-
-      // 사용자가 이미 좋아요를 눌렀는지 확인
-      const existingLike = await UserLike.findOne({ where: { groupId: id, userId: user } })
+      // ✅ 좋아요 여부 확인
+      const existingLike = await studygroup.hasLikedUsers(userId)
 
       if (existingLike) {
-         // 좋아요 취소 (이미 좋아요를 누른 경우)
-         await existingLike.destroy() // 유저의 좋아요 기록 삭제
-         likedData.liked -= 1 // 좋아요 수 -1
-         await likedData.save()
-
-         return res.status(200).json({ success: true, liked: likedData.liked, message: '좋아요가 취소되었습니다.' })
+         // ✅ 좋아요 취소
+         await studygroup.removeLikedUsers(userId)
       } else {
-         // 좋아요 추가 (좋아요가 없는 경우)
-         await UserLike.create({ groupId: id, userId: user }) // 유저 좋아요 기록 추가
-         likedData.liked += 1 // 좋아요 수 +1
-         await likedData.save()
-
-         return res.status(200).json({ success: true, liked: likedData.liked, message: '좋아요가 추가되었습니다.' })
+         // ✅ 좋아요 추가
+         await studygroup.addLikedUsers(userId)
       }
+
+      // ✅ 최신 좋아요 개수 가져오기
+      const likedUsers = await studygroup.getLikedUsers()
+      const likeCount = likedUsers.length // 좋아요 개수
+
+      return res.status(200).json({
+         success: true,
+         liked: !existingLike, // ✅ 좋아요 여부 반전
+         likeCount, // ✅ 최신 좋아요 개수 반환
+         message: existingLike ? '좋아요가 취소되었습니다.' : '스터디 그룹을 좋아요했습니다.',
+      })
    } catch (error) {
-      console.error(error)
-      res.status(500).json({ success: false, message: '좋아요 처리 중 오류 발생', error })
+      console.error('❌ 좋아요 처리 중 오류:', error)
+      res.status(500).json({ success: false, message: '좋아요 처리 중 오류가 발생했습니다.', error })
+   }
+})
+// ✅ 특정 스터디 그룹의 좋아요 개수 가져오기
+router.get('/:groupId/count', async (req, res) => {
+   try {
+      const { groupId } = req.params
+
+      // ✅ Studygroup 찾기
+      const studygroup = await Studygroup.findByPk(groupId)
+
+      if (!studygroup) {
+         return res.status(404).json({ success: false, message: '존재하지 않는 스터디 그룹입니다.' })
+      }
+
+      // ✅ 좋아요 개수 확인 (`getLikedUsers()` 사용)
+      const likedUsers = (await studygroup.getLikedUsers()) || [] // ✅ 만약 undefined라면 빈 배열 처리
+
+      console.log(`✅ 좋아요한 유저 리스트 (${groupId}):`, likedUsers) // ✅ 디버깅용 로그
+
+      const likeCount = likedUsers.length || 0 // ✅ 만약 좋아요가 없으면 0으로 처리
+
+      return res.status(200).json({ success: true, likeCount }) // ✅ 성공 응답
+   } catch (error) {
+      console.error('❌ 좋아요 개수 조회 중 오류:', error)
+      res.status(500).json({ success: false, message: '좋아요 개수 조회 중 오류가 발생했습니다.', error })
+   }
+})
+
+// ✅ 로그인한 유저가 특정 그룹을 좋아요했는지 여부 확인
+router.get('/:groupId/status', isLoggedIn, async (req, res) => {
+   try {
+      const { groupId } = req.params
+      const userId = req.user.id
+
+      // ✅ Studygroup 모델을 통해 좋아요 여부 확인
+      const studygroup = await Studygroup.findByPk(groupId)
+
+      if (!studygroup) {
+         return res.status(404).json({ success: false, message: '존재하지 않는 스터디 그룹입니다.' })
+      }
+
+      const existingLike = await studygroup.hasLikedUsers(userId) // ✅ 좋아요 여부 확인
+
+      return res.status(200).json({ success: true, liked: existingLike }) // ✅ true / false 반환
+   } catch (error) {
+      console.error('❌ 좋아요 상태 확인 중 오류:', error)
+      res.status(500).json({ success: false, message: '좋아요 상태 확인 중 오류가 발생했습니다.', error })
    }
 })
 

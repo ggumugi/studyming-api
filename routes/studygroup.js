@@ -2,6 +2,7 @@
 const express = require('express')
 const router = express.Router()
 const { Studygroup, Groupmember, Grouptime, Hashtag, Liked, Channel, User } = require('../models')
+const { isAdmin } = require('./middlewares')
 
 // 스터디 그룹 생성
 router.post('/', async (req, res) => {
@@ -138,7 +139,7 @@ router.put('/:id', async (req, res) => {
 })
 
 // 스터디 그룹 삭제
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', isAdmin, async (req, res) => {
    try {
       const studygroup = await Studygroup.findByPk(req.params.id)
       if (!studygroup) {
