@@ -24,9 +24,15 @@ router.post('/', async (req, res) => {
 
       // Groupmember 생성 (스터디 그룹 ID 및 생성자 ID 참조)
       await Groupmember.create({
-         role: 'leader', // 생성자는 리더로 설정
          groupId: studygroup.id, // 스터디 그룹 ID 참조
          userId: studygroup.createdBy, // 생성자 ID 참조
+         role: 'leader',
+         status: 'off',
+         access: null,
+         rewards: 0,
+         shareState: false,
+         camState: false,
+         voiceState: false,
       })
       // Channel 생성
       await Channel.create({
