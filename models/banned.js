@@ -32,7 +32,8 @@ module.exports = class Banned extends Sequelize.Model {
    }
 
    static associate(db) {
-      Banned.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE' })
+      Banned.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE', as: 'reportedUser' }) // 🚀 정지당한 유저
+      Banned.belongsTo(db.User, { foreignKey: 'reportedById', targetKey: 'id', onDelete: 'CASCADE', as: 'reportedBy' }) // 🚀 신고한 유저
       Banned.belongsTo(db.Admin, { foreignKey: 'adminId', targetKey: 'id', onDelete: 'CASCADE' })
    }
 }

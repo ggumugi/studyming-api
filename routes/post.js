@@ -82,13 +82,15 @@ router.get('/', async (req, res) => {
       const limit = parseInt(req.query.limit, 10) || 3
       const offset = (page - 1) * limit
 
-      const count = await Post.count()
+      const category = req.query.category // ✅ 쿼리에서 category 가져오기
+      const whereCondition = category ? { category } : {} // ✅ category가 있으면 필터 적용
+      const count = await Post.count({ where: whereCondition }) // ✅ 필터 적용된 게시글 개수 계산
 
       const posts = await Post.findAll({
+         where: whereCondition, // ✅ category 필터 적용
          limit,
          offset,
-         order: [['createdAt', 'DESC']], // 최신날짜 순으로 가져온다
-         // 게시글을 작성한 사람과 게시글에 작성된 해시태그를 같이 가져온다
+         order: [['createdAt', 'DESC']], // 최신 날짜 순으로 가져오기
          include: [
             {
                model: User,

@@ -19,7 +19,12 @@ const postRouter = require('./routes/post')
 const studygroupRouter = require('./routes/studygroup')
 const commentRouter = require('./routes/comment')
 const adminpostRouter = require('./routes/adminpost')
+<<<<<<< HEAD
+const bannedRouter = require('./routes/banned')
+=======
 const likedRouter = require('./routes/liked')
+const groupmemberRouter = require('./routes/groupmember')
+>>>>>>> 325da71612687d7e36fc40bf5051e8f625806d75
 
 const app = express()
 
@@ -79,9 +84,16 @@ app.use('/point', pointRouter) // 포인트 관련 라우터
 app.use('/item', itemRouter) // 밍샵아이템 관련 라우터
 app.use('/post', postRouter) // 게시판
 app.use('/studygroup', studygroupRouter) // 스터디그룹 관련 라우터
+<<<<<<< HEAD
+app.use('/comment', commentRouter)
+app.use('/adminpost', adminpostRouter)
+app.use('/banned', bannedRouter) // 벤 관련 라우터
+=======
 app.use('/comment', commentRouter) // 댓글 관련 라우터
 app.use('/adminpost', adminpostRouter) //관리자 정보 게시판 라우터
 app.use('/liked', likedRouter) //스터디그룹 좋아요 관련 라우터
+app.use('/groupmember', groupmemberRouter) //그룹 멤버 관련 라우터
+>>>>>>> 325da71612687d7e36fc40bf5051e8f625806d75
 
 // 서버 실행
 app.listen(app.get('port'), () => {
