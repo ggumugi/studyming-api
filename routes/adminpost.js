@@ -2,7 +2,7 @@
 
 const express = require('express')
 const { Post, User, Images } = require('../models') // Diary 모델 임포트
-const { isLoggedIn, isAdmin } = require('./middleware') // 로그인 여부 미들웨어
+const { isLoggedIn, isAdmin } = require('./middlewares') // 로그인 여부 미들웨어
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
