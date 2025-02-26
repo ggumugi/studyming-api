@@ -46,6 +46,16 @@ module.exports = class User extends Sequelize.Model {
                type: Sequelize.DATEONLY,
                allowNull: true,
             },
+            google: {
+               type: Sequelize.BOOLEAN,
+               allowNull: false,
+               defaultValue: false,
+            },
+            kakao: {
+               type: Sequelize.BOOLEAN,
+               allowNull: false,
+               defaultValue: false,
+            },
          },
          {
             sequelize,
@@ -83,8 +93,8 @@ module.exports = class User extends Sequelize.Model {
       User.hasMany(db.Chat, { foreignKey: 'senderId', sourceKey: 'id', as: 'SenderChat', onDelete: 'CASCADE' })
       User.hasMany(db.Chat, { foreignKey: 'receiverId', sourceKey: 'id', as: 'ReceiverChat', onDelete: 'CASCADE' })
       User.hasMany(db.Interest, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
-      User.hasMany(db.Report, { foreignKey: 'reportedById', sourceKey: 'id', as: 'ReportedBy', onDelete: 'CASCADE' })
-      User.hasMany(db.Report, { foreignKey: 'reportedUserId', sourceKey: 'id', as: 'ReportedUser', onDelete: 'CASCADE' })
+      User.hasMany(db.Report, { foreignKey: 'reportedById', sourceKey: 'id', as: 'reportedBy', onDelete: 'CASCADE' })
+      User.hasMany(db.Report, { foreignKey: 'reportedUserId', sourceKey: 'id', as: 'reportedUser', onDelete: 'CASCADE' })
       User.hasMany(db.Myitem, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
       User.hasOne(db.Point, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
       User.hasMany(db.Groupmember, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })

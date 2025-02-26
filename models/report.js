@@ -28,7 +28,7 @@ module.exports = class Report extends Sequelize.Model {
    }
 
    static associate(db) {
-      Report.belongsTo(db.User, { foreignKey: 'reportedById', targetKey: 'id', onDelete: 'CASCADE', as: 'ReportedBy' })
-      Report.belongsTo(db.User, { foreignKey: 'reportedUserId', targetKey: 'id', onDelete: 'CASCADE', as: 'ReportedUser' })
+      Report.belongsTo(db.User, { foreignKey: 'reportedById', targetKey: 'id', onDelete: 'CASCADE', as: 'reportedBy' })
+      Report.belongsTo(db.User, { foreignKey: 'reportedUserId', targetKey: 'id', onDelete: 'CASCADE', as: 'reportedUser' })
    }
 }

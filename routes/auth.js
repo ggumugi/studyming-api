@@ -13,7 +13,7 @@ const router = express.Router()
 router.post('/signup', isNotLoggedIn, async (req, res, next) => {
    console.log('회원가입 요청 데이터:', req.body)
 
-   const { email, password, nickname, name, loginId } = req.body
+   const { email, password, nickname, name, loginId, google, kakao } = req.body
 
    if (!email || !password || !nickname || !name || !loginId) {
       return res.status(400).json({ success: false, message: '필수 정보를 모두 입력해주세요.' })
@@ -37,6 +37,8 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
          status: 'ACTIVE',
          gender: 'NONE',
          birth: null,
+         google,
+         kakao,
       })
       // ✅ 회원가입 시 포인트 자동 생성 (기본값 0)
       await Point.create({
@@ -158,6 +160,139 @@ router.post('/login', isNotLoggedIn, async (req, res, next) => {
       })
    })(req, res, next)
 })
+
+// 구글 로그인 라우터
+router.post('/google-login', async (req, res) => {
+   const { email, name } = req.body // 프론트엔드에서 전달한 구글 이메일
+
+   // 필수 필드 유효성 검사
+   if (!email || !name) {
+      console.error('필수 필드 누락:', { email, name })
+      return res.status(400).json({
+         success: false,
+         message: '이메일과 이름은 필수입니다.',
+      })
+   }
+
+   try {
+      // 이메일로 사용자 조회
+      const user = await User.findOne({ where: { email } })
+      console.log('조회된 사용자:', user) // 디버깅 로그 추가
+      const sns = 'google'
+
+      if (!user) {
+         // 사용자가 없으면 회원가입 페이지로 리다이렉트
+         return res.status(200).json({
+            success: false,
+            message: '회원가입이 필요합니다.',
+            redirect: `/signup?email=${email}&nickname=${name}&sns=${sns}`,
+         })
+      }
+
+      if (user.google) {
+         // 구글 로그인 사용자인 경우 로그인 처리
+         req.login(user, (loginError) => {
+            if (loginError) {
+               return res.status(500).json({
+                  success: false,
+                  message: '로그인 중 오류 발생',
+                  error: loginError,
+               })
+            }
+            return res.json({
+               success: true,
+               message: '로그인 성공',
+               user: {
+                  id: user.id,
+                  loginId: user.loginId,
+                  email: user.email,
+                  nickname: user.nickname,
+                  name: user.name,
+                  role: user.role,
+               },
+            })
+         })
+      } else {
+         // 일반 로그인 사용자인 경우
+         return res.status(400).json({
+            success: false,
+            message: '구글 연동된 계정이 아닙니다.',
+         })
+      }
+   } catch (error) {
+      res.status(500).json({
+         success: false,
+         message: '구글 로그인 실패',
+         error: error.message,
+      })
+   }
+})
+// 🔹 카카오 로그인 (프론트에서 access_token을 받아서 처리)
+router.post('/kakao-login', async (req, res) => {
+   const { accessToken } = req.body // 프론트에서 전달한 카카오 액세스 토큰
+
+   if (!accessToken) {
+      return res.status(400).json({ success: false, message: 'AccessToken이 필요합니다.' })
+   }
+
+   try {
+      // 🔸 카카오 API로 사용자 정보 가져오기
+      const userResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
+         headers: { Authorization: `Bearer ${accessToken}` },
+      })
+
+      const { id, kakao_account } = userResponse.data
+      const email = kakao_account.email
+      const nickname = kakao_account.profile.nickname
+
+      if (!email) {
+         return res.status(400).json({ success: false, message: '이메일 정보 제공이 필요합니다.' })
+      }
+
+      // 🔸 DB에서 사용자 찾기
+      let user = await User.findOne({ where: { email } })
+
+      if (!user) {
+         // 🔹 신규 사용자 - 회원가입 필요
+         return res.status(200).json({
+            success: false,
+            code: 'signupRequired',
+            message: '회원가입이 필요합니다.',
+            redirect: `/signup?email=${email}&nickname=${nickname}&sns=kakao`,
+         })
+      }
+
+      if (user.kakao) {
+         // 🔹 기존 사용자 - 로그인 처리
+         req.login(user, (err) => {
+            if (err) return res.status(500).json({ success: false, message: '로그인 중 오류 발생', error: err })
+            return res.json({
+               success: true,
+               message: '로그인 성공',
+               user: {
+                  id: user.id,
+                  loginId: user.loginId,
+                  email: user.email,
+                  nickname: user.nickname,
+                  name: user.name,
+                  role: user.role,
+               },
+            })
+         })
+      } else {
+         // 🔹 카카오 연동 안 된 계정
+         return res.status(400).json({
+            success: false,
+            code: 'notKakao',
+            message: '카카오 연동된 계정이 아닙니다.',
+         })
+      }
+   } catch (error) {
+      console.error('❌ 카카오 로그인 실패:', error)
+      res.status(500).json({ success: false, message: '카카오 로그인 실패', error: error.message })
+   }
+})
+
 // 이메일로 아이디 찾기
 router.post('/find-id', async (req, res) => {
    const { email } = req.body // 클라이언트에서 전달된 이메일
