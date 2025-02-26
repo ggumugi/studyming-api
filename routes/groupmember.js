@@ -83,7 +83,7 @@ router.patch('/participate/:groupId', async (req, res) => {
 })
 
 // 그룹 멤버 탈퇴
-router.delete('/:groupId/', async (req, res) => {
+router.delete('/:groupId/:userId', async (req, res) => {
    try {
       const { groupId, userId } = req.params
 
@@ -95,6 +95,8 @@ router.delete('/:groupId/', async (req, res) => {
       if (result === 0) {
          return res.status(404).json({ success: false, message: '그룹 멤버를 찾을 수 없음' })
       }
+      // 스터디 그룹 멤버 수 감소
+      await Studygroup.decrement('countMembers', { by: 1, where: { id: groupId } })
 
       res.json({ success: true, message: '그룹 멤버 탈퇴 완료' })
    } catch (error) {

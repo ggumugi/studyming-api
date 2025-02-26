@@ -52,7 +52,7 @@ router.post('/report', isLoggedIn, async (req, res) => {
 // ✅ 🚀 관리자: 벤 적용 API
 router.post('/ban', isAdmin, async (req, res) => {
    try {
-      const { reportId, adminId, banDays } = req.body
+      let { reportId, adminId, banDays } = req.body
 
       // 🚀 관리자 ID가 존재하는지 확인
       const admin = await Admin.findByPk(adminId)
@@ -60,35 +60,54 @@ router.post('/ban', isAdmin, async (req, res) => {
          return res.status(400).json({ message: '관리자 계정을 찾을 수 없습니다.' })
       }
 
-      // 🚀 신고 내역 확인
+      // 🚀 신고 정보 가져오기 (신고한 사람 정보 필요)
       const report = await Report.findByPk(reportId, {
-         include: [{ model: User, as: 'ReportedUser' }],
+         include: [
+            { model: User, as: 'reportedBy', attributes: ['id', 'nickname'] }, // 🚀 신고한 유저 (명확한 alias)
+            { model: User, as: 'reportedUser', attributes: ['id', 'nickname'] }, // 🚀 신고당한 유저 (명확한 alias)
+         ],
       })
-
       if (!report) {
          return res.status(404).json({ message: '신고 내역을 찾을 수 없습니다.' })
       }
-
+      // 🚀 벤 기간 계산
       const startDate = new Date()
-      const endDate = new Date()
-      endDate.setDate(endDate.getDate() + parseInt(banDays))
+      let endDate = null
 
-      // 🚀 유저 상태 변경
-      await User.update({ status: 'BANNED' }, { where: { id: report.reportedUserId } })
+      if (banDays !== -1) {
+         banDays = parseInt(banDays, 10) // 🚀 숫자로 변환
+         if (isNaN(banDays)) {
+            return res.status(400).json({ message: '유효한 정지 기간을 입력하세요.' })
+         }
+         endDate = new Date()
+         endDate.setDate(startDate.getDate() + banDays)
+      }
 
-      // 🚀 벤 내역 추가
-      const banned = await Banned.create({
-         userId: report.reportedUserId,
-         adminId,
-         reason: report.reason,
-         startDate,
-         endDate,
+      endDate.setDate(startDate.getDate() + parseInt(banDays)) // ✅ 정수 변환 후 더하기
+
+      console.log('🚀 벤 적용 디버그:', {
+         reportId,
+         reportedUserId: report?.reportedUserId || '없음',
+         reportedById: report?.reportedById || '없음',
+         reason: report?.reason || '없음',
       })
 
-      // 🚀 신고 내역 삭제
-      await report.destroy()
+      const bannedUser = await Banned.create({
+         userId: report?.reportedUser?.id || null, // ✅ 신고당한 유저 (값이 없으면 null)
+         reportedById: report?.reportedBy?.id || adminId, // ✅ 신고한 유저 (없으면 adminId로 대체)
+         reason: report?.reason || '사유 없음',
+         startDate,
+         endDate,
+         adminId, // 🚀 벤을 적용한 관리자 ID
+      })
 
-      res.status(201).json({ message: `신고된 회원 ${report.ReportedUser.nickname} 정지 적용 완료`, banned })
+      // 🚀 신고된 유저 상태 변경
+      await User.update({ status: 'BANNED' }, { where: { id: report.reportedUserId } })
+
+      // 🚀 신고 내역 삭제 (이미 벤 됐으므로)
+      await Report.destroy({ where: { id: reportId } })
+
+      res.status(201).json({ message: `신고된 회원 ${report.reportedUser.nickname} 정지 적용 완료`, bannedUser })
    } catch (error) {
       console.error('❌ 벤 적용 오류:', error)
       res.status(500).json({ message: '서버 오류 발생', error: error.message })
@@ -98,26 +117,24 @@ router.post('/ban', isAdmin, async (req, res) => {
 // ✅ 벤 기간 변경 API
 router.put('/updateban', isAdmin, async (req, res) => {
    try {
-      const { userId, newEndDate } = req.body
+      const { bannedId, newEndDate } = req.body // ✅ bannedId로 변경
 
-      if (!userId || !newEndDate) {
-         return res.status(400).json({ message: '🚨 userId 또는 newEndDate가 제공되지 않았습니다.' }) // ✅ 요청 값 체크
-      }
+      // ✅ 해당 벤 기록 찾기
+      const bannedUser = await Banned.findOne({
+         where: { bannedId }, // 🔥 기존 id → bannedId로 변경
+      })
 
-      console.log('🚀 정지 기간 변경 요청:', { userId, newEndDate }) // ✅ 로그 추가
-
-      const bannedUser = await Banned.findOne({ where: { userId } })
       if (!bannedUser) {
-         return res.status(404).json({ message: '🚨 해당 사용자가 정지 목록에 없습니다.' })
+         return res.status(404).json({ message: `해당 정지 기록(${bannedId})을 찾을 수 없습니다.` })
       }
 
-      bannedUser.endDate = newEndDate
-      await bannedUser.save()
+      // ✅ 정지 기간 업데이트
+      await Banned.update({ endDate: newEndDate }, { where: { id: bannedId } })
 
-      res.status(200).json({ message: '✅ 정지 기간이 성공적으로 변경되었습니다.' })
+      res.status(200).json({ message: '정지 기간이 변경되었습니다.', bannedId, newEndDate })
    } catch (error) {
       console.error('❌ 정지 기간 변경 오류:', error)
-      res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message })
+      res.status(500).json({ message: '서버 오류 발생', error: error.message })
    }
 })
 
@@ -126,8 +143,8 @@ router.get('/reports', isAdmin, async (req, res) => {
    try {
       const reports = await Report.findAll({
          include: [
-            { model: User, as: 'ReportedUser', attributes: ['id', 'nickname', 'status'] },
-            { model: User, as: 'ReportedBy', attributes: ['id', 'nickname'] },
+            { model: User, as: 'reportedUser', attributes: ['id', 'nickname', 'status'] },
+            { model: User, as: 'reportedBy', attributes: ['id', 'nickname'] },
          ],
          order: [['createdAt', 'DESC']],
       })
@@ -165,16 +182,10 @@ router.get('/bannedusers', isAdmin, async (req, res) => {
          order: [['createdAt', 'DESC']],
       })
 
-      // 🚀 신고 사유 가져오기
+      // ✅ 🚀 신고 사유를 banned 테이블에서 직접 가져오기 (Report 조회 X)
       for (let bannedUser of bannedUsers) {
-         const latestReport = await Report.findOne({
-            where: { reportedUserId: bannedUser.userId, reportedById: bannedUser.reportedById },
-            attributes: ['reason'],
-            order: [['createdAt', 'DESC']],
-         })
-         bannedUser.dataValues.reason = latestReport ? latestReport.reason : '사유 없음'
+         bannedUser.dataValues.reason = bannedUser.reason || '사유 없음'
       }
-
       res.status(200).json(bannedUsers)
    } catch (error) {
       console.error('❌ 정지된 유저 목록 불러오기 오류:', error)

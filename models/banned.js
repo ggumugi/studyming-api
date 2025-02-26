@@ -4,6 +4,12 @@ module.exports = class Banned extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
          {
+            bannedId: {
+               // ✅ 기본 id를 bannedId로 매핑
+               type: Sequelize.INTEGER,
+               autoIncrement: true,
+               primaryKey: true,
+            },
             startDate: {
                type: Sequelize.DATE,
                allowNull: false,
