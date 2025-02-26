@@ -131,6 +131,8 @@ router.get('/', async (req, res) => {
    try {
       const { page = 1, category, searchType, searchKeyword, limit = 10 } = req.query
 
+      console.log(req.query)
+
       const offset = (page - 1) * limit
       const whereCondition = {}
 
@@ -150,7 +152,15 @@ router.get('/', async (req, res) => {
       // 총 게시물 수 계산
       const count = await Post.count({
          where: whereCondition,
-         include: searchType === 'author' ? [{ model: User }] : [],
+         include:
+            searchType === 'author'
+               ? [
+                    {
+                       model: User,
+                       where: { nickname: { [Op.like]: `%${searchKeyword}%` } },
+                    },
+                 ]
+               : [],
       })
 
       // 게시물 조회
@@ -174,7 +184,10 @@ router.get('/', async (req, res) => {
          success: true,
          posts: posts || [],
          pagination: {
-            /* ... */
+            totalPosts: count,
+            currentPage: page,
+            totalPages: Math.ceil(count / limit),
+            limit,
          },
       })
    } catch (error) {
