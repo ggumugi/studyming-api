@@ -8,6 +8,8 @@ const User = require('../models/user')
 const Auth = require('../models/auth')
 const Point = require('../models/point')
 
+const getKakaoUserInfo = require('../services/kakaoService') // 카카오 사용자 정보 가져오는 서비스
+
 const router = express.Router()
 //회원가입 localhost:8000/auth/signup
 router.post('/signup', isNotLoggedIn, async (req, res, next) => {
@@ -227,7 +229,7 @@ router.post('/google-login', async (req, res) => {
       })
    }
 })
-// 🔹 카카오 로그인 (프론트에서 access_token을 받아서 처리)
+// 카카오 로그인 라우터
 router.post('/kakao-login', async (req, res) => {
    const { accessToken } = req.body // 프론트에서 전달한 카카오 액세스 토큰
 
@@ -236,34 +238,29 @@ router.post('/kakao-login', async (req, res) => {
    }
 
    try {
-      // 🔸 카카오 API로 사용자 정보 가져오기
-      const userResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
-         headers: { Authorization: `Bearer ${accessToken}` },
-      })
-
-      const { id, kakao_account } = userResponse.data
+      // 카카오 API로 사용자 정보 가져오기
+      const userData = await getKakaoUserInfo(accessToken)
+      const { kakao_account } = userData
       const email = kakao_account.email
-      const nickname = kakao_account.profile.nickname
 
       if (!email) {
          return res.status(400).json({ success: false, message: '이메일 정보 제공이 필요합니다.' })
       }
 
-      // 🔸 DB에서 사용자 찾기
+      // DB에서 사용자 찾기
       let user = await User.findOne({ where: { email } })
 
       if (!user) {
-         // 🔹 신규 사용자 - 회원가입 필요
+         // 신규 사용자 - 회원가입 필요
          return res.status(200).json({
             success: false,
             code: 'signupRequired',
             message: '회원가입이 필요합니다.',
-            redirect: `/signup?email=${email}&nickname=${nickname}&sns=kakao`,
          })
       }
 
       if (user.kakao) {
-         // 🔹 기존 사용자 - 로그인 처리
+         // 기존 사용자 - 로그인 처리
          req.login(user, (err) => {
             if (err) return res.status(500).json({ success: false, message: '로그인 중 오류 발생', error: err })
             return res.json({
@@ -280,7 +277,7 @@ router.post('/kakao-login', async (req, res) => {
             })
          })
       } else {
-         // 🔹 카카오 연동 안 된 계정
+         // 카카오 연동 안 된 계정
          return res.status(400).json({
             success: false,
             code: 'notKakao',
@@ -293,6 +290,32 @@ router.post('/kakao-login', async (req, res) => {
    }
 })
 
+// 카카오 사용자 정보 가져오는 라우터
+router.post('/kakao-user-info', async (req, res) => {
+   const { accessToken } = req.body // 프론트에서 전달한 카카오 액세스 토큰
+
+   if (!accessToken) {
+      return res.status(400).json({ success: false, message: 'AccessToken이 필요합니다.' })
+   }
+
+   try {
+      // 카카오 API로 사용자 정보 가져오기
+      const userData = await getKakaoUserInfo(accessToken)
+      const { kakao_account } = userData
+      const email = kakao_account.email
+      const nickname = kakao_account.profile.nickname
+
+      // 이메일과 닉네임 반환
+      return res.json({
+         success: true,
+         email,
+         nickname,
+      })
+   } catch (error) {
+      console.error('❌ 사용자 정보 가져오기 실패:', error)
+      res.status(500).json({ success: false, message: '사용자 정보 가져오기 실패', error: error.message })
+   }
+})
 // 이메일로 아이디 찾기
 router.post('/find-id', async (req, res) => {
    const { email } = req.body // 클라이언트에서 전달된 이메일
