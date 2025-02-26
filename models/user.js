@@ -46,6 +46,16 @@ module.exports = class User extends Sequelize.Model {
                type: Sequelize.DATEONLY,
                allowNull: true,
             },
+            google: {
+               type: Sequelize.BOOLEAN,
+               allowNull: false,
+               defaultValue: false,
+            },
+            kakao: {
+               type: Sequelize.BOOLEAN,
+               allowNull: false,
+               defaultValue: false,
+            },
          },
          {
             sequelize,

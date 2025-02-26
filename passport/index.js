@@ -20,14 +20,16 @@ module.exports = () => {
          },
          async (accessToken, refreshToken, profile, done) => {
             try {
-               let user = await User.findOne({ where: { googleId: profile.id } })
+               let user = await User.findOne({ where: { email: profile.emails[0].value } })
 
                if (!user) {
-                  user = await User.create({
-                     googleId: profile.id,
-                     email: profile.emails[0].value,
-                     nickname: profile.displayName,
-                     role: 'USER',
+                  // 회원가입이 필요한 경우, 프로필 정보를 전달
+                  return done(null, false, {
+                     message: '회원가입이 필요합니다.',
+                     profile: {
+                        email: profile.emails[0].value, // 구글 이메일
+                        nickname: profile.displayName, // 구글 닉네임
+                     },
                   })
                }
 
