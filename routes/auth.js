@@ -4,9 +4,7 @@ const bcrypt = require('bcrypt')
 const nodemailer = require('nodemailer')
 const crypto = require('crypto') // 랜덤 인증 코드 생성
 const { isLoggedIn, isNotLoggedIn } = require('./middlewares')
-const User = require('../models/user')
-const Auth = require('../models/auth')
-const Point = require('../models/point')
+const { User, Auth, Point, Alltime, Time } = require('../models')
 
 const getKakaoUserInfo = require('../services/kakaoService') // 카카오 사용자 정보 가져오는 서비스
 
@@ -47,7 +45,16 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
          userId: newUser.id, // 생성된 사용자의 ID 사용
          point: 0, // 기본 포인트 0 설정
       })
-
+      //타이머
+      await Alltime.create({
+         userId: newUser.id,
+         allTime: '00:00:00',
+      })
+      await Time.create({
+         userId: newUser.id,
+         time: '00:00:00',
+         YTime: '00:00:00',
+      })
       res.status(201).json({
          success: true,
          message: '사용자가 성공적으로 등록되었습니다.',

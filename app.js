@@ -22,6 +22,7 @@ const adminpostRouter = require('./routes/adminpost')
 const bannedRouter = require('./routes/banned')
 const likedRouter = require('./routes/liked')
 const groupmemberRouter = require('./routes/groupmember')
+const timeRouter = require('./routes/time')
 
 const app = express()
 
@@ -88,6 +89,7 @@ app.use('/comment', commentRouter) // 댓글 관련 라우터
 app.use('/adminpost', adminpostRouter) //관리자 정보 게시판 라우터
 app.use('/liked', likedRouter) //스터디그룹 좋아요 관련 라우터
 app.use('/groupmember', groupmemberRouter) //그룹 멤버 관련 라우터
+app.use('/time', timeRouter) //타이머 관련 라우터
 
 // 서버 실행
 app.listen(app.get('port'), () => {
