@@ -34,7 +34,7 @@ const upload = multer({
 router.post('/', isLoggedIn, upload.single('img'), async (req, res) => {
    try {
       const { postId } = req.params
-      console.log('📌 postId:', postId) // 🔥 확인용 로그
+
       const { content } = req.body
       const imgPath = req.file ? `/uploads/comments/${req.file.filename}` : null
 

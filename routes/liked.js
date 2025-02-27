@@ -56,8 +56,6 @@ router.get('/:groupId/count', async (req, res) => {
       // ✅ 좋아요 개수 확인 (`getLikedUsers()` 사용)
       const likedUsers = (await studygroup.getLikedUsers()) || [] // ✅ 만약 undefined라면 빈 배열 처리
 
-      console.log(`✅ 좋아요한 유저 리스트 (${groupId}):`, likedUsers) // ✅ 디버깅용 로그
-
       const likeCount = likedUsers.length || 0 // ✅ 만약 좋아요가 없으면 0으로 처리
 
       return res.status(200).json({ success: true, likeCount }) // ✅ 성공 응답
