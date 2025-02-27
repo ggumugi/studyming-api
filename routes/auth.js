@@ -13,8 +13,6 @@ const getKakaoUserInfo = require('../services/kakaoService') // 카카오 사용
 const router = express.Router()
 //회원가입 localhost:8000/auth/signup
 router.post('/signup', isNotLoggedIn, async (req, res, next) => {
-   console.log('회원가입 요청 데이터:', req.body)
-
    const { email, password, nickname, name, loginId, google, kakao } = req.body
 
    if (!email || !password || !nickname || !name || !loginId) {
@@ -122,8 +120,6 @@ router.get('/check-nickname', async (req, res) => {
 
 //자체로그인 localhost:8000/auth/login
 router.post('/login', isNotLoggedIn, async (req, res, next) => {
-   console.log('🔍 로그인 후 세션 확인:', req.session) // ✅ 세션 확인
-   console.log('🔍 로그인 후 사용자 정보:', req.user) // ✅ 유저 정보 확인
    passport.authenticate('local', (authError, user, info) => {
       if (authError) {
          //로그인 인증 중 에러 발생시
@@ -179,7 +175,7 @@ router.post('/google-login', async (req, res) => {
    try {
       // 이메일로 사용자 조회
       const user = await User.findOne({ where: { email } })
-      console.log('조회된 사용자:', user) // 디버깅 로그 추가
+
       const sns = 'google'
 
       if (!user) {
@@ -354,8 +350,6 @@ router.post('/find-id/send-code', async (req, res) => {
    }
 
    try {
-      console.log('🔎 [DEBUG] 이메일 인증 요청:', email)
-
       // 🔥 데이터베이스에서 해당 이메일이 존재하는지 확인
       const user = await User.findOne({ where: { email } })
       if (!user) {
@@ -364,7 +358,6 @@ router.post('/find-id/send-code', async (req, res) => {
 
       // 6자리 랜덤 인증 코드 생성
       const verificationCode = crypto.randomInt(100000, 999999).toString()
-      console.log('✅ [DEBUG] 생성된 인증 코드:', verificationCode)
 
       // 인증 코드 저장 (5분 후 자동 삭제)
       verificationCodes[email] = verificationCode
@@ -389,7 +382,6 @@ router.post('/find-id/send-code', async (req, res) => {
       }
 
       await transporter.sendMail(mailOptions)
-      console.log('📩 [DEBUG] 이메일 전송 완료:', email)
 
       res.json({ success: true, message: '이메일로 인증 코드를 전송했습니다.' })
    } catch (error) {
@@ -407,8 +399,6 @@ router.post('/find-id/verify-code', async (req, res) => {
    }
 
    try {
-      console.log('🔎 [DEBUG] 인증 코드 확인 요청:', email, verificationCode)
-
       // 저장된 인증 코드 확인
       if (verificationCodes[email] !== verificationCode) {
          return res.status(400).json({ success: false, message: '인증 코드가 일치하지 않습니다.' })
@@ -419,8 +409,6 @@ router.post('/find-id/verify-code', async (req, res) => {
       if (!user) {
          return res.status(400).json({ success: false, message: '가입된 이메일이 없습니다.' })
       }
-
-      console.log('✅ [DEBUG] 인증 성공 - 찾은 아이디:', user.loginId)
 
       // 인증 성공 시 아이디 반환
       res.json({ success: true, loginId: user.loginId })
@@ -487,7 +475,7 @@ router.post('/password-reset/check-email', async (req, res) => {
 
    try {
       await transporter.sendMail(mailOptions)
-      console.log('📩 [DEBUG] 이메일 전송 완료:', email)
+
       res.json({ success: true, message: '이메일로 인증 코드를 전송했습니다.' })
    } catch (error) {
       console.error('🚨 [ERROR] 인증 코드 전송 실패:', error)
@@ -504,8 +492,6 @@ router.post('/password-reset/verify-codepw', async (req, res) => {
    }
 
    try {
-      console.log('🔎 [DEBUG] 인증 코드 확인 요청:', email, verificationCodepw)
-
       // ✅ 저장된 인증 코드 확인 (변수명 일관성 유지)
       if (!verificationCodespw[email] || verificationCodespw[email] !== verificationCodepw) {
          return res.status(400).json({ success: false, message: '인증 코드가 일치하지 않습니다.' })
@@ -521,7 +507,6 @@ router.post('/password-reset/verify-codepw', async (req, res) => {
 
 // ✅ 4. 새 비밀번호 설정 (이메일을 별도 입력받지 않고 저장된 인증된 이메일 사용)
 router.patch('/password-reset/update-password', async (req, res) => {
-   console.log('📡 서버에서 받은 요청:', req.body) // ✅ 디버깅 로그 추
    const { email, newPassword } = req.body // ✅ 인증된 이메일을 받아서 사용
 
    if (!email || !newPassword) {
