@@ -35,7 +35,7 @@ router.post('/:postId', isLoggedIn, upload.single('image'), async (req, res) => 
       console.log('📢 요청이 multer로 오기 전 req.headers:', req.headers)
       console.log('📢 요청이 multer로 오기 전 req.body:', req.body)
       const { postId } = req.params
-      console.log('📌 postId:', postId) // 🔥 확인용 로그
+
       const { content } = req.body
       const imgPath = req.file ? `/uploads/${req.file.filename}` : null
 

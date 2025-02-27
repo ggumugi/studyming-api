@@ -28,8 +28,6 @@ router.get('/', async (req, res) => {
  */
 router.get('/history', async (req, res) => {
    try {
-      console.log('🔹 요청된 사용자 ID:', req.user.id)
-
       // ✅ 사용자의 포인트 정보 가져오기
       const userPoint = await Point.findOne({
          where: { userId: req.user.id },
@@ -51,16 +49,9 @@ router.get('/history', async (req, res) => {
          return res.status(404).json({ success: false, message: '사용자의 포인트 정보가 없습니다.' })
       }
 
-      console.log('🔹 사용자 포인트 ID:', userPoint.id)
-      console.log('🔹 전체 Purchase 데이터:', JSON.stringify(userPoint.Purchases, null, 2))
-
       // ✅ `Pointhistory`와 `Purchase`를 매칭
       const history = userPoint.Pointhistories.map((his) => {
-         console.log('🔹 현재 Pointhistory ID:', his.id)
-         console.log('🔹 현재 Pointhistory Point ID:', his.pointId)
-
          const matchingPurchases = userPoint.Purchases.filter((p) => p.pointId === his.pointId)
-         console.log('🔹 매칭된 Purchases:', JSON.stringify(matchingPurchases, null, 2))
 
          // ✅ `createdAt`이 `Pointhistory`보다 이전이면서 가장 가까운 `Purchase` 찾기 (10초 차이 이내 허용)
          const closestPurchase = matchingPurchases
@@ -77,8 +68,6 @@ router.get('/history', async (req, res) => {
             itemPrice: closestPurchase ? closestPurchase.fee : null, // ✅ `Purchase.fee` 값 가져오기
          }
       })
-
-      console.log('🔹 최종 변환된 데이터:', JSON.stringify(history, null, 2))
 
       res.status(200).json({ success: true, history })
    } catch (error) {

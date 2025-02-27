@@ -131,8 +131,6 @@ router.get('/', async (req, res) => {
    try {
       const { page = 1, category, searchType, searchKeyword, limit = 10 } = req.query
 
-      console.log(req.query)
-
       const offset = (page - 1) * limit
       const whereCondition = {}
 
@@ -200,8 +198,6 @@ router.get('/', async (req, res) => {
 // ✅ 게시글 수정 API (제목, 내용, 이미지 포함)
 router.put('/:id', upload.array('images', 5), async (req, res) => {
    try {
-      console.log('🔍 백엔드에서 받은 req.body:', req.body) // ✅ 추가
-
       const { title, content, removeImageIds } = req.body
       const postId = req.params.id
 
@@ -217,7 +213,6 @@ router.put('/:id', upload.array('images', 5), async (req, res) => {
 
       // ✅ 게시글 제목, 내용 수정
       await post.update({ title, content })
-      console.log('✅ 게시글이 성공적으로 업데이트되었습니다.')
 
       // ✅ 삭제할 이미지가 있다면 삭제
       if (removeImageIds) {

@@ -177,4 +177,101 @@ router.get('/:groupId/:userId', async (req, res) => {
    }
 })
 
+// 방장 위임
+router.put('/:groupId', async (req, res) => {
+   console.log('방장 위임 API 요청 수신')
+   console.log('받은 groupId:', req.params.groupId)
+   console.log('받은 newLeaderId:', req.body.newLeaderId)
+
+   if (!req.params.groupId || !req.body.newLeaderId) {
+      return res.status(400).json({ success: false, message: 'groupId 또는 newLeaderId가 없습니다.' })
+   }
+   // console.log(`🟢 요청된 데이터 - groupId: ${groupId}, 현재 방장 ID: ${userId}, 새 방장 ID: ${newLeaderId}`)
+
+   try {
+      const { groupId } = req.params
+      const { newLeaderId } = req.body
+      const userId = req.user.id // 현재 요청한 유저
+
+      // 현재 방장인지 확인
+      const currentLeader = await Groupmember.findOne({
+         where: { groupId, userId, role: 'leader' },
+      })
+
+      if (!currentLeader) {
+         return res.status(403).json({ success: false, message: '방장만 위임할 수 있습니다.' })
+      }
+
+      // 새 방장 유효성 검사
+      const newLeader = await Groupmember.findOne({
+         where: { groupId, userId: newLeaderId, role: 'member' },
+      })
+
+      if (!newLeader) {
+         return res.status(400).json({ success: false, message: '위임할 대상이 유효하지 않습니다.' })
+      }
+
+      // 방장 위임 처리
+      await currentLeader.update({ role: 'member' }) // 기존 방장 -> 일반 멤버
+      await newLeader.update({ role: 'leader' }) // 새로운 멤버 -> 방장
+
+      // Studygroup 테이블의 createdBy 변경
+      await Studygroup.update({ createdBy: newLeaderId }, { where: { id: groupId } })
+
+      res.json({ success: true, message: '방장 위임 완료' })
+   } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, message: '방장 위임 실패', error })
+   }
+})
+
+// ✅ 강퇴 API - 방장만 실행 가능
+router.delete('/:groupId/:userId', async (req, res) => {
+   try {
+      const { groupId, userId } = req.params
+      const leaderId = req.user.id // 현재 요청한 유저 (방장인지 확인)
+
+      // ✅ 현재 요청자가 방장인지 확인
+      const leader = await Groupmember.findOne({
+         where: { groupId, userId: leaderId, role: 'leader' },
+      })
+
+      if (!leader) {
+         return res.status(403).json({ success: false, message: '방장만 강퇴할 수 있습니다.' })
+      }
+
+      // ✅ 강퇴할 멤버가 그룹에 있는지 확인
+      const member = await Groupmember.findOne({
+         where: { groupId, userId, role: 'member' },
+      })
+
+      if (!member) {
+         return res.status(400).json({ success: false, message: '강퇴할 대상이 그룹에 없습니다.' })
+      }
+
+      // ✅ 강퇴할 멤버 삭제 (그룹에서 제거)
+      await member.destroy()
+
+      // 스터디 그룹 멤버 수 감소
+      await Studygroup.decrement('countMembers', { by: 1, where: { id: groupId } })
+
+      // ✅ `groupban` 테이블에 강퇴된 유저 추가
+      const group = await Studygroup.findByPk(groupId)
+      console.log('🟢 현재 그룹:', group)
+      console.log('🟢 강퇴할 유저 ID:', userId)
+
+      if (group) {
+         await group.addBannedUsers(userId) // ✅ 자동 추가
+         console.log('✅ `groupban` 테이블에 강퇴된 유저 추가 완료!')
+      } else {
+         console.error('🚨 그룹을 찾을 수 없음!')
+      }
+
+      res.json({ success: true, message: '유저가 강퇴되었습니다.' })
+   } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, message: '강퇴 실패', error })
+   }
+})
+
 module.exports = router
