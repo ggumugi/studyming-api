@@ -27,9 +27,6 @@ const upload = multer({ storage }) // ✅ `uploads` 변수로 정의
 // ✅ 아이템 등록 API (multer를 사용하여 이미지 업로드)
 router.post('/', upload.single('img'), async (req, res) => {
    try {
-      console.log('📌 요청 데이터:', req.body) // ✅ 요청 데이터 확인
-      console.log('📌 업로드된 파일:', req.file) // ✅ 업로드 파일 확인
-
       const { name, detail, price, limit, type } = req.body
       const imgPath = req.file ? `/uploads/${req.file.filename}` : null
 
@@ -38,8 +35,6 @@ router.post('/', upload.single('img'), async (req, res) => {
       }
 
       const newItem = await Item.create({ name, detail, price, img: imgPath, limit, type })
-
-      console.log('✅ 저장된 아이템:', newItem) // ✅ DB 저장 확인
 
       res.status(201).json({ success: true, item: newItem })
    } catch (error) {
@@ -58,9 +53,6 @@ router.put('/:id', isLoggedIn, isAdmin, upload.single('img'), async (req, res) =
       const { id } = req.params
       let { name, detail, price, limit, type } = req.body
       const imgPath = req.file ? `/uploads/${req.file.filename}` : req.body.img
-
-      console.log('🔹 수정 요청 데이터:', req.body)
-      console.log('🔹 업로드된 파일:', req.file)
 
       const item = await Item.findByPk(id)
       if (!item) {
@@ -86,8 +78,6 @@ router.get('/', async (req, res) => {
    try {
       const items = await Item.findAll()
 
-      console.log('📌 서버에서 불러온 아이템 목록:', items) // ✅ 서버에서 데이터 확인
-
       res.status(200).json({ success: true, items })
    } catch (error) {
       console.error('❌ 아이템 조회 오류:', error)
@@ -98,8 +88,6 @@ router.get('/', async (req, res) => {
 // ✅ 사용자의 아이템 목록 가져오기
 router.get('/myitems', async (req, res) => {
    try {
-      console.log('🔹 요청된 사용자 ID:', req.user.id)
-
       const myItems = await Myitem.findAll({
          where: { userId: req.user.id },
          include: [

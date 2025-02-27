@@ -1,7 +1,6 @@
 //댓글 crud,채택 (지우)
-
-const express = require('express')
 const multer = require('multer')
+const express = require('express')
 const { Comment, User, Post, Images } = require('../models')
 const { isLoggedIn } = require('./middlewares') // ✅ 로그인한 사용자만 댓글 작성 가능
 const path = require('path')
@@ -31,12 +30,18 @@ const upload = multer({
 })
 
 //댓글 작성(정보게시판엔 댓글 불필요)
-router.post('/', isLoggedIn, upload.single('img'), async (req, res) => {
+router.post('/:postId', isLoggedIn, upload.single('image'), async (req, res) => {
    try {
+      console.log('📢 요청이 multer로 오기 전 req.headers:', req.headers)
+      console.log('📢 요청이 multer로 오기 전 req.body:', req.body)
       const { postId } = req.params
-      console.log('📌 postId:', postId) // 🔥 확인용 로그
+
       const { content } = req.body
-      const imgPath = req.file ? `/uploads/comments/${req.file.filename}` : null
+      const imgPath = req.file ? `/uploads/${req.file.filename}` : null
+
+      console.log('📢 요청된 postId:', req.params.postId)
+      console.log('📢 요청된 body:', req.body) // ✅ content 값 확인
+      console.log('📢 요청된 파일:', req.file) // ✅ 이미지 파일 확인
 
       // ✅ 포스트 존재 여부 확인
       const post = await Post.findByPk(postId)
@@ -64,9 +69,12 @@ router.post('/', isLoggedIn, upload.single('img'), async (req, res) => {
    }
 })
 //댓글 전체리스트 가져오기
-router.get('/', async (req, res) => {
+router.get('/:postId', async (req, res) => {
    try {
       const { postId } = req.params
+      console.log('📢 fetchComments 요청 시작! req.params:', req.params) // ✅ postId 확인
+
+      console.log('📢 최종 postId 값:', postId)
       const page = parseInt(req.query.page, 10) || 1
       const limit = parseInt(req.query.limit, 10) || 10
       const offset = (page - 1) * limit
@@ -91,21 +99,34 @@ router.get('/', async (req, res) => {
          include: [{ model: User, attributes: ['id', 'nickname'] }],
       })
 
+      console.log('📢 조회된 댓글 목록:', comments) // ✅ 이거 확인!
+
       res.status(200).json({ success: true, comments })
    } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, message: '댓글 조회 실패', error })
    }
 })
-//댓글 수정
-router.put('/:id', isLoggedIn, upload.single('img'), async (req, res) => {
+
+// 댓글 수정 (자신만 가능)
+router.put('/:id', isLoggedIn, upload.single('image'), async (req, res) => {
    try {
-      const { commentId } = req.params
+      const { id } = req.params // ✅ commentId → id 변경
       const { content } = req.body
       const imgPath = req.file ? `/uploads/${req.file.filename}` : null // ✅ 새 이미지 업로드
 
-      const comment = await Comment.findOne({ where: { id: commentId, userId: req.user.id } })
+      console.log('✏️ 댓글 수정 요청:', { id, userId: req.user.id, content, imgPath })
+
+      // 댓글 조회
+      const comment = await Comment.findOne({ where: { id } })
+
+      // ❌ 댓글이 존재하지 않음
       if (!comment) {
+         return res.status(404).json({ success: false, message: '수정할 댓글을 찾을 수 없습니다.' })
+      }
+
+      // ❌ 작성자만 수정 가능
+      if (comment.userId !== req.user.id) {
          return res.status(403).json({ success: false, message: '댓글 수정 권한이 없습니다.' })
       }
 
@@ -116,19 +137,21 @@ router.put('/:id', isLoggedIn, upload.single('img'), async (req, res) => {
       }
       await comment.save()
 
+      console.log('✅ 댓글 수정 완료:', id)
       res.status(200).json({ success: true, message: '댓글 수정 완료', comment })
    } catch (error) {
-      console.error(error)
-      res.status(500).json({ success: false, message: '댓글 수정 실패', error })
+      console.error('❌ 댓글 수정 중 오류 발생:', error)
+      res.status(500).json({ success: false, message: '댓글 수정 실패', error: error.message })
    }
 })
 
-//댓글삭제
+// 댓글 삭제
 router.delete('/:id', isLoggedIn, async (req, res) => {
    try {
-      const { commentId } = req.params
+      const { id } = req.params
+      console.log('서버에서 삭제 요청 받은 ID:', id) // ✅ 백엔드에서 로그 확인
 
-      const comment = await Comment.findOne({ where: { id: commentId } })
+      const comment = await Comment.findOne({ where: { id } })
       if (!comment) {
          return res.status(404).json({ success: false, message: '댓글을 찾을 수 없습니다.' })
       }
