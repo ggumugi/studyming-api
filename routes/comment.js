@@ -205,25 +205,25 @@ router.get('/:id', async (req, res) => {
 
 router.patch('/:id/select', isLoggedIn, async (req, res) => {
    try {
-      const { commentId } = req.params
+      const { id } = req.params // ✅ `commentId` → `id`로 변경
 
       // ✅ 댓글 찾기
-      const comment = await Comment.findByPk(commentId)
+      const comment = await Comment.findByPk(id)
       if (!comment) {
          return res.status(404).json({ success: false, message: '댓글을 찾을 수 없습니다.' })
       }
 
       // ✅ 기존에 채택된 댓글이 있는지 확인 (같은 게시글에서)
       const existingSelected = await Comment.findOne({
-         where: { postId: comment.postId, selected: true }, // ✅ `isSelected` → `selected`
+         where: { postId: comment.postId, selected: true },
       })
 
       if (existingSelected) {
          return res.status(400).json({ success: false, message: '이미 채택된 댓글이 있습니다.' })
       }
 
-      // ✅ 댓글 채택 (selected 변경)
-      comment.selected = true // ✅ `isSelected` → `selected`
+      // ✅ 댓글 채택
+      comment.selected = true
       await comment.save()
 
       res.status(200).json({ success: true, message: '댓글이 채택되었습니다.', comment })
