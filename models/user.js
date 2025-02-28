@@ -56,6 +56,11 @@ module.exports = class User extends Sequelize.Model {
                allowNull: false,
                defaultValue: false,
             },
+            unconnected: {
+               type: Sequelize.INTEGER,
+               allowNull: true,
+               defaultValue: '0',
+            },
          },
          {
             sequelize,
@@ -72,7 +77,7 @@ module.exports = class User extends Sequelize.Model {
 
    static associate(db) {
       User.hasMany(db.Studygroup, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
-      User.belongsToMany(db.Studygroup, { foreignKey: 'userId', as: 'BannedGroups', through: 'Groupban' })
+      User.hasMany(db.Groupban, { foreignKey: 'userId', sourceKey: 'id', as: 'BannedGroups', onDelete: 'CASCADE' })
       User.belongsToMany(db.Studygroup, { foreignKey: 'userId', as: 'LikedGroups', through: 'Likedgroup' })
       User.hasMany(db.Noti, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
       User.hasOne(db.Time, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })

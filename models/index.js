@@ -13,6 +13,7 @@ const Chat = require('./chat')
 const Comment = require('./comment')
 const DDay = require('./dDay')
 const Goals = require('./goals')
+const Groupban = require('./groupban')
 const Groupmember = require('./groupmember')
 const Grouptime = require('./grouptime')
 const Hashtag = require('./hashtag')
@@ -48,6 +49,7 @@ db.Chat = Chat
 db.Comment = Comment
 db.DDay = DDay
 db.Goals = Goals
+db.Groupban = Groupban
 db.Groupmember = Groupmember
 db.Grouptime = Grouptime
 db.Hashtag = Hashtag
@@ -79,6 +81,7 @@ Chat.init(sequelize)
 Comment.init(sequelize)
 DDay.init(sequelize)
 Goals.init(sequelize)
+Groupban.init(sequelize)
 Groupmember.init(sequelize)
 Grouptime.init(sequelize)
 Hashtag.init(sequelize)
@@ -109,6 +112,7 @@ Chat.associate(db)
 Comment.associate(db)
 DDay.associate(db)
 Goals.associate(db)
+Groupban.associate(db)
 Groupmember.associate(db)
 Grouptime.associate(db)
 Hashtag.associate(db)

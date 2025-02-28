@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { Studygroup, Groupmember, User, Grouptime } = require('../models')
+const { Studygroup, Groupmember, User, Grouptime, Groupban } = require('../models')
 
 // 그룹 멤버 가입
 router.post('/:groupId', async (req, res) => {
@@ -249,23 +249,37 @@ router.delete('/:groupId/:userId', async (req, res) => {
          return res.status(400).json({ success: false, message: '강퇴할 대상이 그룹에 없습니다.' })
       }
 
+      // ✅ `groupban` 테이블에 강퇴된 유저 추가
+      console.log('🔥 `groupban`에 추가할 데이터 - groupId:', groupId, 'userId:', userId)
+
+      const banResult = await Groupban.create({ groupId, userId })
+      console.log('✅ `groupban` 추가 결과:', banResult)
+
+      await Groupban.sequelize.query('INSERT INTO groupban (groupId, userId) VALUES (?, ?)', {
+         replacements: [groupId, userId],
+      })
+
       // ✅ 강퇴할 멤버 삭제 (그룹에서 제거)
       await member.destroy()
 
       // 스터디 그룹 멤버 수 감소
       await Studygroup.decrement('countMembers', { by: 1, where: { id: groupId } })
 
-      // ✅ `groupban` 테이블에 강퇴된 유저 추가
-      const group = await Studygroup.findByPk(groupId)
-      console.log('🟢 현재 그룹:', group)
-      console.log('🟢 강퇴할 유저 ID:', userId)
+      await Groupban.sequelize.query('INSERT INTO groupbans (groupId, userId) VALUES (?, ?)', {
+         replacements: [groupId, userId],
+      })
 
-      if (group) {
-         await group.addBannedUsers(userId) // ✅ 자동 추가
-         console.log('✅ `groupban` 테이블에 강퇴된 유저 추가 완료!')
-      } else {
-         console.error('🚨 그룹을 찾을 수 없음!')
-      }
+      // ✅ `groupban.create()` 실행 전 `groupId`와 `userId` 값 확인
+      // console.log(`🔥 강퇴 요청 - groupId: ${groupId}, userId: ${userId}`)
+
+      // if (!groupId || !userId) {
+      // console.error('❌ groupId 또는 userId가 정의되지 않음!')
+      // return res.status(400).json({ success: false, message: '잘못된 요청 (groupId 또는 userId 없음)' })
+      // }
+
+      // ✅ `groupban` 테이블에 강퇴된 유저 추가
+      // const banResult = await Groupban.create({ groupId, userId })
+      // console.log('✅ `groupban` 추가 결과:', banResult)
 
       res.json({ success: true, message: '유저가 강퇴되었습니다.' })
    } catch (error) {

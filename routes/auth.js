@@ -141,6 +141,17 @@ router.post('/login', isNotLoggedIn, async (req, res, next) => {
          })
       }
 
+      // ✅ 만약 사용자가 휴면 계정(SLEEP) 상태라면 경고 메시지 반환
+      if (user.status === 'SLEEP') {
+         return res.status(403).json({
+            success: false,
+            message: '6개월 미접속으로 휴면 계정이 되었습니다. 비밀번호 변경 후 이용해주세요.',
+         })
+      }
+
+      // ✅ 로그인 성공 → `unconnected` 값 초기화
+      user.update({ unconnected: 0 })
+
       // 인증이 정상적으로 되고 사용자를 로그인 상태로 바꿈
       req.login(user, (loginError) => {
          if (loginError) {
@@ -193,6 +204,8 @@ router.post('/google-login', async (req, res) => {
             redirect: `/signup?email=${email}&nickname=${name}&sns=${sns}`,
          })
       }
+      // ✅ 로그인 성공 → `unconnected` 값 초기화
+      user.update({ unconnected: 0 })
 
       if (user.google) {
          // 구글 로그인 사용자인 경우 로그인 처리
@@ -261,6 +274,8 @@ router.post('/kakao-login', async (req, res) => {
             message: '회원가입이 필요합니다.',
          })
       }
+      // ✅ 로그인 성공 → `unconnected` 값 초기화
+      user.update({ unconnected: 0 })
 
       if (user.kakao) {
          // 기존 사용자 - 로그인 처리
@@ -530,6 +545,13 @@ router.patch('/password-reset/update-password', async (req, res) => {
 
       // ✅ 비밀번호 해싱 후 업데이트
       const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+      // ✅ 만약 유저가 `SLEEP` 상태라면 `ACTIVE`로 변경 & `unconnected` 값 초기화
+      if (user.status === 'SLEEP') {
+         await user.update({ password: hashedPassword, status: 'ACTIVE', unconnected: 0 })
+         return res.json({ success: true, message: '비밀번호가 변경되었으며, 휴면 계정이 해제되었습니다!' })
+      }
+
       await user.update({ password: hashedPassword })
 
       res.json({ success: true, message: '비밀번호가 성공적으로 변경되었습니다!' })
