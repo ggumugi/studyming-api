@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize')
 
-module.exports = class GroupBan extends Sequelize.Model {
+module.exports = class Groupban extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
          {},
@@ -18,7 +18,7 @@ module.exports = class GroupBan extends Sequelize.Model {
    }
 
    static associate(db) {
-      db.Groupban.belongsTo(db.Studygroup, { foreignKey: 'groupId', targetKey: 'id', onDelete: 'CASCADE' })
-      db.Groupban.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE' })
+      Groupban.belongsTo(db.Studygroup, { foreignKey: 'groupId', targetKey: 'id', onDelete: 'CASCADE' })
+      Groupban.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE' })
    }
 }

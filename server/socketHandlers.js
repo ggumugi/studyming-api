@@ -1,3 +1,5 @@
+const { Chat } = require('../models')
+
 /**
  * 사용자가 방에 입장했을 때 처리하는 함수
  */
@@ -97,6 +99,77 @@ function handleDisconnect(socket, io) {
    })
 }
 
+/**
+ * 사용자가 채팅 메시지를 보냈을 때 처리하는 함수
+ */
+async function handleSendMessage(socket, io, data) {
+   const { roomId, senderId, content, messageType } = data
+
+   if (!roomId || !senderId || !content) return
+
+   try {
+      // DB에 채팅 메시지 저장
+      const newMessage = await Chat.create({
+         groupId: roomId,
+         senderId,
+         content,
+         messageType: messageType || 'text',
+      })
+
+      console.log(`📩 메시지 전송: ${senderId} -> 방 ${roomId} : ${content}`)
+
+      // 같은 방에 있는 사용자들에게 메시지 전송
+      io.to(roomId).emit('receive_message', {
+         id: newMessage.id,
+         senderId,
+         content,
+         messageType,
+         createdAt: newMessage.createdAt,
+      })
+   } catch (error) {
+      console.error('메시지 저장 오류:', error)
+   }
+}
+
+/**
+ * 과거 채팅 내역 불러오기
+ */
+async function handleFetchMessages(socket, data) {
+   const { roomId } = data
+   if (!roomId) return
+
+   try {
+      const messages = await Chat.findAll({
+         where: { groupId: roomId },
+         order: [['createdAt', 'ASC']],
+      })
+
+      socket.emit('fetch_messages', messages)
+   } catch (error) {
+      console.error('채팅 내역 불러오기 오류:', error)
+   }
+}
+
+/**
+ * 사용자가 입력 중임을 알리는 이벤트
+ */
+function handleUserTyping(socket, io, data) {
+   const { roomId, userId } = data
+   if (!roomId || !userId) return
+
+   socket.to(roomId).emit('user_typing', { userId, roomId })
+}
+
+/**
+ * 사용자가 입력을 멈췄음을 알리는 이벤트
+ */
+function handleUserStoppedTyping(socket, io, data) {
+   const { roomId, userId } = data
+   if (!roomId || !userId) return
+
+   socket.to(roomId).emit('user_stopped_typing', { userId, roomId })
+}
+
 module.exports = {
    handleJoinRoom,
    handleScreenShareStarted,
@@ -104,4 +177,8 @@ module.exports = {
    handleAnswer,
    handleCandidate,
    handleDisconnect,
+   handleSendMessage, // ✅ 메시지 전송
+   handleFetchMessages, // ✅ 채팅 기록 불러오기
+   handleUserTyping, // ✅ 입력 중 표시
+   handleUserStoppedTyping, // ✅ 입력 멈춤 표시
 }

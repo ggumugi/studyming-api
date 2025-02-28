@@ -10,6 +10,8 @@ router.post('/', async (req, res) => {
       // 스터디 그룹 생성
       const studygroup = await Studygroup.create(req.body)
 
+      const jitsiRoomId = `studyming_${studygroup.id}_${Math.random().toString(36).substring(2, 10)}`
+
       // Grouptime 생성 (스터디 그룹 ID 참조)
       await Grouptime.create({
          time: '00:00:00', // 기본값 설정
@@ -38,7 +40,7 @@ router.post('/', async (req, res) => {
       // Channel 생성
       await Channel.create({
          groupId: studygroup.id,
-         sharedChannel: null,
+         shareChannel: null,
          camChannel: null,
          voiceChannel: null,
       })
@@ -98,6 +100,24 @@ router.get('/:id', async (req, res) => {
    } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, message: '스터디 그룹 조회 실패', error })
+   }
+})
+
+// 특정 스터디 그룹의 채널 정보 조회
+router.get('/:id/channel', async (req, res) => {
+   try {
+      const channel = await Channel.findOne({
+         where: { groupId: req.params.id },
+      })
+
+      if (!channel) {
+         return res.status(404).json({ success: false, message: '채널 정보를 찾을 수 없습니다.' })
+      }
+
+      res.json({ success: true, channel })
+   } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, message: '채널 정보 조회 실패', error })
    }
 })
 
