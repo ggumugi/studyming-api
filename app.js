@@ -4,6 +4,8 @@ const cookieParser = require('cookie-parser')
 const morgan = require('morgan')
 const session = require('express-session')
 const passport = require('passport')
+const http = require('http') // http 모듈 추가
+const { Server } = require('socket.io') // socket.io 추가
 require('dotenv').config()
 const cors = require('cors')
 
@@ -24,7 +26,85 @@ const likedRouter = require('./routes/liked')
 const groupmemberRouter = require('./routes/groupmember')
 const screenShareRouter = require('./routes/screenShare') // 새로운 라우터 추가
 
+// Express 앱 생성
 const app = express()
+
+// HTTP 서버 생성 (app 변수 선언 후에 작성)
+const server = http.createServer(app)
+
+// Socket.io 서버 설정
+// Socket.io 서버 설정 수정
+const io = new Server(server, {
+   cors: {
+      origin: '*', // 개발 중에는 모든 출처 허용
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      credentials: true,
+      allowedHeaders: ['Content-Type', 'Authorization'],
+   },
+   transports: ['websocket', 'polling'], // 두 가지 전송 방식 모두 지원
+   pingTimeout: 60000,
+   pingInterval: 25000,
+   connectTimeout: 45000,
+   allowEIO3: true, // Engine.IO 3 프로토콜 허용
+})
+
+// 디버깅을 위한 이벤트 추가
+io.engine.on('connection_error', (err) => {
+   console.error('Socket.io 연결 오류:', err)
+})
+// Socket.io 이벤트 핸들러
+io.on('connection', (socket) => {
+   console.log('새 클라이언트 연결:', socket.id)
+
+   // 방 참가 이벤트
+   socket.on('join-room', (data) => {
+      const { roomId, userId, userName } = data
+      socket.join(roomId)
+      console.log(`사용자 ${userName}(${userId})가 방 ${roomId}에 참가함`)
+
+      // 같은 방의 다른 사용자들에게 새 참가자 알림
+      socket.to(roomId).emit('user-joined', {
+         userId,
+         userName,
+         socketId: socket.id,
+      })
+
+      // 연결 종료 시
+      socket.on('disconnect', () => {
+         console.log(`사용자 ${userName}(${userId}) 연결 종료`)
+         io.to(roomId).emit('user-left', {
+            userId,
+            userName,
+            socketId: socket.id,
+         })
+      })
+   })
+
+   // WebRTC 시그널링
+   socket.on('signal', (data) => {
+      const { roomId, from, to, signal } = data
+      console.log(`시그널: ${from} -> ${to}`)
+
+      // 특정 사용자에게 시그널 전달
+      socket.to(roomId).emit('signal', {
+         from,
+         to,
+         signal,
+      })
+   })
+
+   // 화면 공유 상태 변경
+   socket.on('screen-sharing-status', (data) => {
+      const { roomId, userId, isSharing } = data
+      console.log(`화면 공유 상태 변경: ${userId} -> ${isSharing ? '시작' : '중지'}`)
+
+      // 같은 방의 모든 사용자에게 알림
+      socket.to(roomId).emit('screen-sharing-changed', {
+         userId,
+         isSharing,
+      })
+   })
+})
 
 require('./schedule/schedule') // 스케줄링 작업 실행
 
@@ -93,5 +173,7 @@ app.use('/liked', likedRouter)
 app.use('/groupmember', groupmemberRouter)
 app.use('/screenShare', screenShareRouter) // 새로운 라우터 등록
 
-// app과 sessionMiddleware 내보내기
-module.exports = { app, sessionMiddleware }
+// app.listen 대신 server.listen 사용
+server.listen(app.get('port'), () => {
+   console.log(app.get('port'), '번 포트에서 대기중')
+})

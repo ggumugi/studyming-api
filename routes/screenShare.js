@@ -1,81 +1,117 @@
+// routes/screenShare.js
 const express = require('express')
 const router = express.Router()
-const { Groupmember, Channel } = require('../models')
+const { Groupmember, User } = require('../models')
+const { isLoggedIn } = require('./middlewares')
 
 // 화면 공유 상태 업데이트
-router.put('/status/:groupId/:userId', async (req, res) => {
+router.patch('/status', isLoggedIn, async (req, res) => {
    try {
-      const { groupId, userId } = req.params
-      const { shareState } = req.body
+      const { groupId, userId, shareState } = req.body
 
-      // 그룹 멤버 찾기
-      const member = await Groupmember.findOne({
+      // 요청한 사용자가 본인인지 확인
+      if (req.user.id !== userId) {
+         return res.status(403).json({
+            success: false,
+            message: '다른 사용자의 상태를 변경할 수 없습니다.',
+         })
+      }
+
+      // 그룹 멤버 정보 조회
+      const groupmember = await Groupmember.findOne({
          where: { groupId, userId },
       })
 
-      if (!member) {
-         return res.status(404).json({ success: false, message: '그룹 멤버를 찾을 수 없습니다.' })
+      if (!groupmember) {
+         return res.status(404).json({
+            success: false,
+            message: '그룹 멤버를 찾을 수 없습니다.',
+         })
       }
 
       // 화면 공유 상태 업데이트
-      await member.update({ shareState })
+      await groupmember.update({ shareState })
 
-      res.json({ success: true, message: '화면 공유 상태가 업데이트되었습니다.', member })
+      res.json({
+         success: true,
+         message: '화면 공유 상태가 업데이트되었습니다.',
+         groupmember,
+      })
    } catch (error) {
-      console.error(error)
-      res.status(500).json({ success: false, message: '화면 공유 상태 업데이트 실패', error })
+      console.error('화면 공유 상태 업데이트 오류:', error)
+      res.status(500).json({
+         success: false,
+         message: '화면 공유 상태 업데이트 실패',
+         error: error.message,
+      })
    }
 })
 
-// 채널 정보 가져오기
-router.get('/channel/:groupId', async (req, res) => {
+// 그룹의 화면 공유 상태 조회
+router.get('/status/:groupId', isLoggedIn, async (req, res) => {
    try {
       const { groupId } = req.params
 
-      // 채널 정보 찾기
-      const channel = await Channel.findOne({
+      // 그룹의 모든 멤버 조회
+      const groupmembers = await Groupmember.findAll({
          where: { groupId },
+         include: [
+            {
+               model: User,
+               attributes: ['id', 'nickname'],
+            },
+         ],
       })
 
-      if (!channel) {
-         return res.status(404).json({ success: false, message: '채널 정보를 찾을 수 없습니다.' })
-      }
-
-      res.json({ success: true, channel })
+      res.json({
+         success: true,
+         groupmembers,
+      })
    } catch (error) {
-      console.error(error)
-      res.status(500).json({ success: false, message: '채널 정보 조회 실패', error })
+      console.error('그룹 화면 공유 상태 조회 오류:', error)
+      res.status(500).json({
+         success: false,
+         message: '그룹 화면 공유 상태 조회 실패',
+         error: error.message,
+      })
    }
 })
 
-// 채널 정보 업데이트
-router.put('/channel/:groupId', async (req, res) => {
+// 활성 피어 목록 조회
+router.get('/peers/:groupId', isLoggedIn, async (req, res) => {
    try {
       const { groupId } = req.params
-      const { sharedChannel } = req.body
 
-      // 채널 정보 찾기
-      let channel = await Channel.findOne({
-         where: { groupId },
-      })
-
-      if (!channel) {
-         // 채널 정보가 없으면 생성
-         channel = await Channel.create({
+      // 활성 상태인 그룹 멤버만 조회
+      const groupmembers = await Groupmember.findAll({
+         where: {
             groupId,
-            sharedChannel,
-            camChannel: null,
-            voiceChannel: null,
-         })
-      } else {
-         // 채널 정보 업데이트
-         await channel.update({ sharedChannel })
-      }
+            status: 'on', // 활성 상태인 멤버만
+         },
+         include: [
+            {
+               model: User,
+               attributes: ['id', 'nickname'],
+            },
+         ],
+      })
 
-      res.json({ success: true, message: '채널 정보가 업데이트되었습니다.', channel })
+      res.json({
+         success: true,
+         peers: groupmembers.map((member) => ({
+            userId: member.userId,
+            nickname: member.User ? member.User.nickname : `사용자 ${member.userId}`,
+            peerId: `user-${member.userId}-group-${groupId}`,
+            shareState: member.shareState,
+         })),
+      })
    } catch (error) {
-      console.error(error)
-      res.status(500).json({ success: false, message: '채널 정보 업데이트 실패', error })
+      console.error('활성 피어 목록 조회 오류:', error)
+      res.status(500).json({
+         success: false,
+         message: '활성 피어 목록 조회 실패',
+         error: error.message,
+      })
    }
 })
 

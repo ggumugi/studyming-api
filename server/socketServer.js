@@ -31,6 +31,12 @@ function setupSocketServer(server, sessionMiddleware) {
       // 방 입장 이벤트
       socket.on('join_room', (data) => socketHandlers.handleJoinRoom(socket, io, data))
 
+      // ✅ 새로운 채팅 이벤트 추가
+      socket.on('send_message', (data) => socketHandlers.handleSendMessage(socket, io, data))
+      socket.on('fetch_messages', (data) => socketHandlers.handleFetchMessages(socket, data))
+      socket.on('user_typing', (data) => socketHandlers.handleUserTyping(socket, io, data))
+      socket.on('user_stopped_typing', (data) => socketHandlers.handleUserStoppedTyping(socket, io, data))
+
       // 화면 공유 시작 이벤트
       socket.on('screen_share_started', (data) => socketHandlers.handleScreenShareStarted(socket, io, data))
 

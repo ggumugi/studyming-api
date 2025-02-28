@@ -12,11 +12,11 @@ module.exports = class Banned extends Sequelize.Model {
             },
             startDate: {
                type: Sequelize.DATE,
-               allowNull: false,
+               allowNull: true,
             },
             endDate: {
                type: Sequelize.DATE,
-               allowNull: false,
+               allowNull: true,
             },
             reason: {
                // ✅ 추가: 신고 사유 저장

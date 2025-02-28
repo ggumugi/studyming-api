@@ -91,7 +91,7 @@ module.exports = class Studygroup extends Sequelize.Model {
    }
 
    static associate(db) {
-      Studygroup.belongsToMany(db.User, { foreignKey: 'groupId', as: 'BannedUsers', through: 'Groupban' })
+      Studygroup.hasMany(db.Groupban, { foreignKey: 'groupId', sourceKey: 'id', as: 'BannedUsers', onDelete: 'CASCADE' })
       Studygroup.belongsToMany(db.User, { foreignKey: 'groupId', as: 'LikedUsers', through: 'Likedgroup' })
       Studygroup.belongsToMany(db.Hashtag, { foreignKey: 'groupId', as: 'Hashtaged', through: 'Grouptag' })
       Studygroup.belongsTo(db.User, { foreignKey: 'createdBy', targetKey: 'id', onDelete: 'CASCADE', as: 'Leader' })
