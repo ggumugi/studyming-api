@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { Banned, User, Admin, Report } = require('../models')
 const { isLoggedIn, isAdmin } = require('./middlewares')
+const { Op } = require('sequelize') // ✅ 연산자 추가
 
 // ✅ 🚀 신고 접수 API (유저 신고)
 router.post('/report', isLoggedIn, async (req, res) => {
@@ -161,13 +162,18 @@ router.get('/reports', isAdmin, async (req, res) => {
          order: [['createdAt', 'DESC']],
       })
 
-      res.status(200).json(reports)
+      // ✅ 프론트에서 상태를 확인할 수 있도록 추가 정보 제공
+      const formattedReports = reports.map((report) => ({
+         ...report.toJSON(),
+         isBanned: report.reportedUser?.status === 'BANNED', // ✅ BANNED 상태 여부 추가
+      }))
+
+      res.status(200).json(formattedReports)
    } catch (error) {
       console.error('❌ 신고 목록 불러오기 오류:', error)
       res.status(500).json({ message: '서버 오류가 발생했습니다.' })
    }
 })
-
 // ✅ 🚀 벤 목록 조회 API (관리자 전용)
 router.get('/bannedusers', isAdmin, async (req, res) => {
    try {
