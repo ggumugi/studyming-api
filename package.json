@@ -2,9 +2,9 @@
    "name": "studyming-api",
    "version": "1.0.0",
    "description": "online studygroup site",
-   "main": "server.js",
+   "main": "app.js",
    "scripts": {
-      "start": "nodemon server.js",
+      "start": "nodemon app.js",
       "test": "echo \"Error: no test specified\" && exit 1"
    },
    "keywords": [],
@@ -27,6 +27,7 @@
       "passport": "^0.7.0",
       "passport-google-oauth20": "^2.0.0",
       "passport-local": "^1.0.0",
+      "peer": "^1.0.2",
       "sequelize": "^6.37.5",
       "socket.io": "^4.8.1"
    },

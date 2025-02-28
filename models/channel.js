@@ -1,3 +1,4 @@
+// models/Channel.js 파일 수정
 const Sequelize = require('sequelize')
 
 module.exports = class Channel extends Sequelize.Model {
