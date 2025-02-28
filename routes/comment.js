@@ -99,7 +99,7 @@ router.get('/:postId', async (req, res) => {
          include: [{ model: User, attributes: ['id', 'nickname'] }],
       })
 
-      console.log('📢 조회된 댓글 목록:', comments) // ✅ 이거 확인!
+      // console.log('📢 조회된 댓글 목록:', comments) // ✅ 이거 확인!
 
       res.status(200).json({ success: true, comments })
    } catch (error) {
@@ -123,14 +123,6 @@ router.put('/:id', isLoggedIn, upload.single('image'), async (req, res) => {
 
       // 댓글 조회
       const comment = await Comment.findOne({ where: { id } })
-
-      if (!commentData || typeof commentData.forEach !== 'function') {
-         console.error('❌ FormData가 비어있거나 올바르지 않음:', commentData)
-         if (commentData instanceof FormData) {
-            console.log('✅ FormData 확인:', Object.fromEntries(commentData.entries()))
-         }
-         return res.status(400).json({ success: false, message: '잘못된 데이터 형식' })
-      }
 
       // ❌ 댓글이 존재하지 않음
       if (!comment) {
