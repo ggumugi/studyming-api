@@ -1,21 +1,24 @@
-// const Sequelize = require('sequelize')
+const Sequelize = require('sequelize')
 
-// module.exports = class GroupBan extends Sequelize.Model {
-//    static init(sequelize) {
-//       return super.init(
-//          {},
-//          {
-//             sequelize,
-//             timestamps: false,
-//             underscored: false,
-//             modelName: 'Groupban',
-//             tableName: 'groupbans',
-//             paranoid: false,
-//             charset: 'utf8mb4',
-//             collate: 'utf8mb4_general_ci',
-//          }
-//       )
-//    }
+module.exports = class GroupBan extends Sequelize.Model {
+   static init(sequelize) {
+      return super.init(
+         {},
+         {
+            sequelize,
+            timestamps: false,
+            underscored: false,
+            modelName: 'Groupban',
+            tableName: 'groupbans',
+            paranoid: false,
+            charset: 'utf8mb4',
+            collate: 'utf8mb4_general_ci',
+         }
+      )
+   }
 
-//    static associate(db) {}
-// }
+   static associate(db) {
+      db.Groupban.belongsTo(db.Studygroup, { foreignKey: 'groupId', targetKey: 'id', onDelete: 'CASCADE' })
+      db.Groupban.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE' })
+   }
+}

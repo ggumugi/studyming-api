@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { Studygroup, Groupmember, User, Grouptime } = require('../models')
+const { Studygroup, Groupmember, User, Grouptime, Groupban } = require('../models')
 
 // 그룹 멤버 가입
 router.post('/:groupId', async (req, res) => {
@@ -256,16 +256,8 @@ router.delete('/:groupId/:userId', async (req, res) => {
       await Studygroup.decrement('countMembers', { by: 1, where: { id: groupId } })
 
       // ✅ `groupban` 테이블에 강퇴된 유저 추가
-      const group = await Studygroup.findByPk(groupId)
-      console.log('🟢 현재 그룹:', group)
-      console.log('🟢 강퇴할 유저 ID:', userId)
-
-      if (group) {
-         await group.addBannedUsers(userId) // ✅ 자동 추가
-         console.log('✅ `groupban` 테이블에 강퇴된 유저 추가 완료!')
-      } else {
-         console.error('🚨 그룹을 찾을 수 없음!')
-      }
+      await Groupban.create({ groupId, userId })
+      console.log('✅ `groupban` 테이블에 강퇴된 유저 직접 추가 완료!')
 
       res.json({ success: true, message: '유저가 강퇴되었습니다.' })
    } catch (error) {

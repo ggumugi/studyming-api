@@ -117,8 +117,20 @@ router.put('/:id', isLoggedIn, upload.single('image'), async (req, res) => {
 
       console.log('✏️ 댓글 수정 요청:', { id, userId: req.user.id, content, imgPath })
 
+      console.log('✅ 수정할 댓글 ID:', id)
+      console.log('✅ 수정할 내용:', content)
+      console.log('✅ 이미지 경로:', imgPath || '이미지 없음')
+
       // 댓글 조회
       const comment = await Comment.findOne({ where: { id } })
+
+      if (!commentData || typeof commentData.forEach !== 'function') {
+         console.error('❌ FormData가 비어있거나 올바르지 않음:', commentData)
+         if (commentData instanceof FormData) {
+            console.log('✅ FormData 확인:', Object.fromEntries(commentData.entries()))
+         }
+         return res.status(400).json({ success: false, message: '잘못된 데이터 형식' })
+      }
 
       // ❌ 댓글이 존재하지 않음
       if (!comment) {
