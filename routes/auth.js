@@ -140,6 +140,8 @@ router.post('/login', isNotLoggedIn, async (req, res, next) => {
             message: info.message || '로그인 실패',
          })
       }
+      // ✅ 로그인 성공 → `unconnected` 값 초기화
+      user.update({ unconnected: 0 })
 
       // 인증이 정상적으로 되고 사용자를 로그인 상태로 바꿈
       req.login(user, (loginError) => {
@@ -193,6 +195,8 @@ router.post('/google-login', async (req, res) => {
             redirect: `/signup?email=${email}&nickname=${name}&sns=${sns}`,
          })
       }
+      // ✅ 로그인 성공 → `unconnected` 값 초기화
+      user.update({ unconnected: 0 })
 
       if (user.google) {
          // 구글 로그인 사용자인 경우 로그인 처리
@@ -261,6 +265,8 @@ router.post('/kakao-login', async (req, res) => {
             message: '회원가입이 필요합니다.',
          })
       }
+      // ✅ 로그인 성공 → `unconnected` 값 초기화
+      user.update({ unconnected: 0 })
 
       if (user.kakao) {
          // 기존 사용자 - 로그인 처리
