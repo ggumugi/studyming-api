@@ -593,4 +593,20 @@ router.get('/logout', isLoggedIn, (req, res) => {
    })
 })
 
+//  전체 유저 리스트 조회 API
+router.get('/users', async (req, res) => {
+   try {
+      // DB에서 모든 사용자 가져오기
+      const users = await User.findAll({
+         attributes: ['id', 'nickname', 'name', 'email', 'createdAt', 'status', 'role'],
+         order: [['createdAt', 'DESC']], // 최신 가입자 먼저 정렬
+      })
+
+      res.json({ success: true, users }) // ✅ JSON 응답
+   } catch (error) {
+      console.error('❌ 유저 목록 조회 실패:', error)
+      res.status(500).json({ success: false, message: '서버 오류 발생' })
+   }
+})
+
 module.exports = router

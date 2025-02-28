@@ -110,21 +110,40 @@ router.post('/ban', isAdmin, async (req, res) => {
 // ✅ 벤 기간 변경 API
 router.put('/updateban', isAdmin, async (req, res) => {
    try {
-      const { bannedId, newEndDate } = req.body // ✅ bannedId로 변경
+      const { bannedId, newEndDate } = req.body
+      console.log(`🚀 정지 기간 변경 요청: bannedId = ${bannedId}, newEndDate = ${newEndDate}`)
 
-      // ✅ 해당 벤 기록 찾기
-      const bannedUser = await Banned.findOne({
-         where: { bannedId }, // 🔥 기존 id → bannedId로 변경
-      })
-
+      // ✅ 기존 bannedUser 찾기
+      const bannedUser = await Banned.findOne({ where: { bannedId } })
       if (!bannedUser) {
-         return res.status(404).json({ message: `해당 정지 기록(${bannedId})을 찾을 수 없습니다.` })
+         return res.status(404).json({ message: `🚨 해당 정지 기록(${bannedId})을 찾을 수 없습니다.` })
       }
 
-      // ✅ 정지 기간 업데이트
-      await Banned.update({ endDate: newEndDate }, { where: { id: bannedId } })
+      console.log('🚀 기존 endDate:', bannedUser.endDate)
 
-      res.status(200).json({ message: '정지 기간이 변경되었습니다.', bannedId, newEndDate })
+      // ✅ 기존 endDate와 새로운 newEndDate를 밀리초 단위로 변환하여 비교
+      const oldDate = new Date(bannedUser.endDate).getTime()
+      const newDate = new Date(newEndDate).getTime()
+
+      console.log(`🔍 [DEBUG] oldDate: ${oldDate}, newDate: ${newDate}, 차이: ${Math.abs(oldDate - newDate)}ms`)
+
+      // ✅ 만약 차이가 1000ms(1초) 이하라면 동일한 값으로 간주
+      if (Math.abs(oldDate - newDate) < 1000) {
+         return res.status(400).json({ message: '🚨 기존 정지 기간과 동일하여 변경할 필요가 없습니다.' })
+      }
+
+      // ✅ 업데이트 실행
+      const [updatedRows] = await Banned.update({ endDate: newEndDate }, { where: { bannedId } })
+
+      // ✅ 변경 후 값 다시 조회
+      const updatedUser = await Banned.findOne({ where: { bannedId } })
+      console.log('🚀 변경된 endDate:', updatedUser.endDate)
+
+      if (updatedRows === 0) {
+         return res.status(400).json({ message: '🚨 정지 기간이 변경되지 않았습니다. (DB에서 무시됨)' })
+      }
+
+      res.status(200).json({ message: '✅ 정지 기간이 성공적으로 변경되었습니다.', bannedId, newEndDate })
    } catch (error) {
       console.error('❌ 정지 기간 변경 오류:', error)
       res.status(500).json({ message: '서버 오류 발생', error: error.message })
