@@ -45,14 +45,24 @@ const upload = multer({
 //게시물 등록
 router.post('/', isLoggedIn, upload.array('images', 10), async (req, res) => {
    try {
+      console.log('📌 req.body:', req.body)
+      console.log('📌 req.user:', req.user)
+
+      // 🔥 category 기본값 추가 (없을 경우 'free'로 설정)
+      const { title, content, category = 'free' } = req.body
+
+      if (!title || !content) {
+         return res.status(400).json({ success: false, message: '제목과 내용을 입력해주세요.' })
+      }
+
       const post = await Post.create({
-         content: req.body.content,
-         title: req.body.title,
-         category: req.body.category,
+         title,
+         content,
+         category, // ✅ undefined 방지
          userId: req.user.id,
       })
 
-      // 이미지 저장 로직
+      // ✅ 기존 이미지 저장 로직 유지
       if (req.files.length > 0) {
          const images = req.files.map((file) => ({
             url: `/uploads/${file.filename}`,
@@ -62,7 +72,7 @@ router.post('/', isLoggedIn, upload.array('images', 10), async (req, res) => {
          await Images.bulkCreate(images)
       }
 
-      // 응답 반환 (return 추가)
+      // ✅ 응답 반환 (return 추가)
       return res.status(201).json({
          success: true,
          post: {
@@ -73,7 +83,6 @@ router.post('/', isLoggedIn, upload.array('images', 10), async (req, res) => {
    } catch (error) {
       console.error('게시글 생성 오류:', error)
       return res.status(500).json({
-         // return 추가
          success: false,
          error: error.message,
       })
@@ -196,28 +205,32 @@ router.get('/', async (req, res) => {
 
 //게시물 수정
 // ✅ 게시글 수정 API (제목, 내용, 이미지 포함)
-router.put('/:id', upload.array('images', 5), async (req, res) => {
+// ✅ 게시글 수정 API (제목, 내용, 카테고리, 이미지 포함)
+router.put('/:id', upload.array('images', 10), async (req, res) => {
    try {
-      const { title, content, removeImageIds } = req.body
+      // ✅ postId를 올바르게 가져오기
       const postId = req.params.id
+
+      // ✅ 수정할 데이터 추출 (카테고리 기본값 추가)
+      const { title, content, category = 'free' } = req.body
+      const removeImageIds = JSON.parse(req.body.removeImageIds || '[]')
 
       if (!title || !content) {
          return res.status(400).json({ success: false, message: '제목과 내용을 모두 입력해야 합니다.' })
       }
 
-      // ✅ 기존 게시글 조회
+      // ✅ 게시글 찾기
       const post = await Post.findByPk(postId, { include: Images })
       if (!post) {
          return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' })
       }
 
-      // ✅ 게시글 제목, 내용 수정
-      await post.update({ title, content })
+      // ✅ 게시글 제목, 내용, 카테고리 수정
+      await post.update({ title, content, category })
 
       // ✅ 삭제할 이미지가 있다면 삭제
-      if (removeImageIds) {
-         const imageIdsToDelete = JSON.parse(removeImageIds)
-         await Images.destroy({ where: { id: imageIdsToDelete, postId } })
+      if (removeImageIds.length > 0) {
+         await Images.destroy({ where: { id: removeImageIds, postId } })
       }
 
       // ✅ 새로운 이미지가 있다면 추가
@@ -229,7 +242,7 @@ router.put('/:id', upload.array('images', 5), async (req, res) => {
          await Images.bulkCreate(newImages)
       }
 
-      // ✅ 수정된 게시글 반환
+      // ✅ 수정된 게시글 반환 (이미지 포함)
       const updatedPost = await Post.findByPk(postId, {
          include: [{ model: Images, attributes: ['id', 'path'] }],
       })
