@@ -206,7 +206,7 @@ router.get('/', async (req, res) => {
 //게시물 수정
 // ✅ 게시글 수정 API (제목, 내용, 이미지 포함)
 // ✅ 게시글 수정 API (제목, 내용, 카테고리, 이미지 포함)
-router.put('/:id', upload.array('images', 5), async (req, res) => {
+router.put('/:id', upload.array('images', 10), async (req, res) => {
    try {
       // ✅ postId를 올바르게 가져오기
       const postId = req.params.id
