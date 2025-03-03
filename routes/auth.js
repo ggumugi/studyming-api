@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt')
 const nodemailer = require('nodemailer')
 const crypto = require('crypto') // 랜덤 인증 코드 생성
 const { isLoggedIn, isNotLoggedIn } = require('./middlewares')
-const { User, Auth, Point, Alltime, Time } = require('../models')
+const { User, Auth, Point, Alltime, Time, Banned } = require('../models')
 
 const getKakaoUserInfo = require('../services/kakaoService') // 카카오 사용자 정보 가져오는 서비스
 
@@ -126,22 +126,21 @@ router.get('/check-nickname', async (req, res) => {
 })
 
 //자체로그인 localhost:8000/auth/login
-router.post('/login', isNotLoggedIn, async (req, res, next) => {
+// 자체 로그인 localhost:8000/auth/login
+router.post('/login', isNotLoggedIn, (req, res, next) => {
    passport.authenticate('local', (authError, user, info) => {
       if (authError) {
-         //로그인 인증 중 에러 발생시
          return res.status(500).json({ success: false, message: '인증 중 오류 발생', error: authError })
       }
 
       if (!user) {
-         //비밀번호 불일치 또는 사용자가 없을 경우 info.message를 사용해서 메세지 전달
          return res.status(401).json({
             success: false,
             message: info.message || '로그인 실패',
          })
       }
 
-      // ✅ 만약 사용자가 휴면 계정(SLEEP) 상태라면 경고 메시지 반환
+      // ✅ 1. 휴면 계정(SLEEP) 상태 체크
       if (user.status === 'SLEEP') {
          return res.status(403).json({
             success: false,
@@ -149,33 +148,63 @@ router.post('/login', isNotLoggedIn, async (req, res, next) => {
          })
       }
 
-      // ✅ 로그인 성공 → `unconnected` 값 초기화
-      user.update({ unconnected: 0 })
-
-      // 인증이 정상적으로 되고 사용자를 로그인 상태로 바꿈
-      req.login(user, (loginError) => {
-         if (loginError) {
-            //로그인 상태로 바꾸는 중 오류 발생시
-            return res.status(500).json({ success: false, message: '로그인 중 오류 발생', error: loginError })
-         }
-
-         //로그인 성공시 user객체와 함께 response
-         //status code를 주지 않으면 기본값은 200(성공)
-         res.json({
-            success: true,
-            message: '로그인 성공',
-            user: {
-               id: user.id,
-               loginId: user.loginId,
-               email: user.email,
-               nickname: user.nickname,
-               name: user.name,
-               role: user.role,
-            },
-         })
-      })
+      // ✅ 2. 정지된 계정(BANNED) 로그인 차단
+      if (user.status === 'BANNED') {
+         return Banned.findOne({ where: { userId: user.id } })
+            .then((bannedUser) => {
+               if (bannedUser) {
+                  const currentDate = new Date()
+                  if (bannedUser.endDate && new Date(bannedUser.endDate) > currentDate) {
+                     return res.status(403).json({
+                        success: false,
+                        message: `🚨 로그인 실패 🚨\n\n📅 정지 기간: ${new Date(bannedUser.endDate).toLocaleString()}까지\n\n❗ 만약 이 조치가 부당하다고 생각되시면 관리자에게 문의해 주세요.\n📩 관리자 이메일: admin@yourwebsite.com`,
+                     })
+                  }
+                  return res.status(403).json({
+                     success: false,
+                     message: `🚨 로그인 실패 🚨\n\n⛔ 계정이 영구 정지되었습니다.\n\n❗ 만약 이 조치가 부당하다고 생각되시면 관리자에게 문의해 주세요.\n📩 관리자 이메일: admin@yourwebsite.com`,
+                  })
+               }
+               return res.status(403).json({ success: false, message: '정지된 계정입니다.' })
+            })
+            .catch((error) => {
+               console.error('🚨 정지된 계정 조회 오류:', error)
+               return res.status(500).json({ success: false, message: '정지된 계정 조회 중 오류 발생' })
+            })
+      } else {
+         proceedWithLogin(user, req, res)
+      }
    })(req, res, next)
 })
+
+// ✅ 로그인 성공 처리 함수
+function proceedWithLogin(user, req, res) {
+   user
+      .update({ unconnected: 0 })
+      .then(() => {
+         req.login(user, (loginError) => {
+            if (loginError) {
+               return res.status(500).json({ success: false, message: '로그인 중 오류 발생', error: loginError })
+            }
+
+            res.json({
+               success: true,
+               message: '로그인 성공',
+               user: {
+                  id: user.id,
+                  loginId: user.loginId,
+                  email: user.email,
+                  nickname: user.nickname,
+                  name: user.name,
+                  role: user.role,
+               },
+            })
+         })
+      })
+      .catch((updateError) => {
+         return res.status(500).json({ success: false, message: '로그인 상태 업데이트 중 오류 발생', error: updateError })
+      })
+}
 
 // 구글 로그인 라우터
 router.post('/google-login', async (req, res) => {
