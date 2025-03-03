@@ -8,6 +8,7 @@ const http = require('http') // http 모듈 추가
 const { Server } = require('socket.io') // socket.io 추가
 require('dotenv').config()
 const cors = require('cors')
+const setupChatSocketServer = require('./server/chatsocketServer')
 
 const { sequelize } = require('./models')
 const passportConfig = require('./passport')
@@ -149,6 +150,9 @@ const sessionMiddleware = session({
    },
 })
 app.use(sessionMiddleware)
+
+// ✅ 새로운 채팅 소켓 서버 실행
+const chatIo = setupChatSocketServer(server, sessionMiddleware)
 
 // Passport 초기화 및 세션 사용
 app.use(passport.initialize())
