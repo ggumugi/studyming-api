@@ -28,6 +28,7 @@ const likedRouter = require('./routes/liked')
 const groupmemberRouter = require('./routes/groupmember')
 const screenShareRouter = require('./routes/screenShare')
 const grouptimeRouter = require('./routes/grouptime')
+const timeRouter = require('./routes/time')
 
 // Express 앱 생성
 const app = express()
@@ -382,6 +383,7 @@ app.use('/liked', likedRouter)
 app.use('/groupmember', groupmemberRouter)
 app.use('/screenShare', screenShareRouter)
 app.use('/grouptime', grouptimeRouter)
+app.use('/time', timeRouter)
 
 // 서버 시작
 const PORT = app.get('port')

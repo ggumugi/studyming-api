@@ -52,33 +52,50 @@ router.post('/:groupId', async (req, res) => {
 })
 
 // 그룹 멤버 참여 상태 업데이트
+// 스터디 그룹 참여 상태 변경 (on/off)
 router.patch('/participate/:groupId', async (req, res) => {
    try {
       const { groupId } = req.params
-      const userId = req.user.id // 로그인한 사용자의 ID
-      const { status } = req.body // 입력된 상태 받기
+      const userId = req.user?.id // 옵셔널 체이닝 추가
+      const { status } = req.body
 
-      if (!['on', 'off'].includes(status)) {
-         return res.status(400).json({ success: false, message: '잘못된 상태 값입니다.' })
+      console.log(`그룹 참여 상태 변경 요청: 그룹 ID ${groupId}, 사용자 ID ${userId}, 상태 ${status}`)
+
+      // 사용자 ID 확인
+      if (!userId) {
+         return res.status(401).json({
+            success: false,
+            message: '인증 정보가 유효하지 않습니다.',
+         })
       }
 
-      // 해당 그룹의 멤버 정보 조회
+      // 그룹 멤버 조회
       const groupmember = await Groupmember.findOne({
          where: { groupId, userId },
       })
 
-      // 그룹 멤버가 존재하는지 확인
       if (!groupmember) {
-         return res.status(404).json({ success: false, message: '그룹 멤버를 찾을 수 없음' })
+         return res.status(404).json({
+            success: false,
+            message: '그룹 멤버를 찾을 수 없습니다.',
+         })
       }
 
-      // 상태를 변수에 따라 변경
+      // 상태 업데이트
       await groupmember.update({ status })
 
-      res.json({ success: true, message: '그룹 멤버 상태가 변경되었습니다.', groupmember })
+      res.json({
+         success: true,
+         message: '그룹 참여 상태가 변경되었습니다.',
+         groupmember,
+      })
    } catch (error) {
-      console.error(error)
-      res.status(500).json({ success: false, message: '그룹 멤버 상태 변경 실패', error })
+      console.error('그룹 참여 상태 변경 실패:', error)
+      res.status(500).json({
+         success: false,
+         message: '그룹 참여 상태 변경 중 오류가 발생했습니다.',
+         error: error.message,
+      })
    }
 })
 

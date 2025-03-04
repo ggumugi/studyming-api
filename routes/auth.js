@@ -37,6 +37,7 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
          birth: null,
          google,
          kakao,
+         unconnected: 0,
       })
       // ✅ 회원가입 시 포인트 자동 생성 (기본값 0)
       await Point.create({

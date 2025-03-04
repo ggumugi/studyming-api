@@ -73,49 +73,59 @@ router.put('/:groupId', isLoggedIn, async (req, res) => {
 
       // 트랜잭션 시작
       const result = await sequelize.transaction(async (t) => {
-         // 1. grouptime 테이블 업데이트
-         const [updated, grouptimeData] = await Grouptime.update(
-            { time },
-            {
-               where: { groupId, userId },
-               returning: true,
-               transaction: t,
-            }
-         )
+         // 1. 먼저 레코드가 존재하는지 확인
+         let grouptimeRecord = await Grouptime.findOne({
+            where: { groupId, userId },
+            transaction: t,
+         })
 
-         let newGrouptime = null
-         if (updated === 0) {
-            // 업데이트할 데이터가 없으면 새로 생성
-            console.log(`타이머 정보 없음, 새로 생성: 그룹 ID ${groupId}, 사용자 ID ${userId}`)
-            newGrouptime = await Grouptime.create({ time, groupId, userId }, { transaction: t })
+         let updatedGrouptime
+
+         if (grouptimeRecord) {
+            // 레코드가 존재하면 업데이트
+            await grouptimeRecord.update({ time }, { transaction: t })
+            updatedGrouptime = grouptimeRecord
+            console.log(`타이머 정보 업데이트 완료: ID ${updatedGrouptime.id}`)
+         } else {
+            // 레코드가 없으면 새로 생성
+            updatedGrouptime = await Grouptime.create(
+               {
+                  time,
+                  groupId,
+                  userId,
+               },
+               { transaction: t }
+            )
+            console.log(`타이머 정보 새로 생성: ID ${updatedGrouptime.id}`)
          }
 
-         // 2. 데이터베이스 레벨에서 총 시간 계산
+         // 2. 데이터베이스 레벨에서 총 시간 계산 (기존 코드와 동일)
          const [totalTimeResult] = await sequelize.query(
+            // SQL 쿼리 (기존과 동일)
             `
-          SELECT 
-            CONCAT(
-              LPAD(FLOOR(SUM(
-                SUBSTRING_INDEX(time, ':', 1) * 3600 + 
-                SUBSTRING_INDEX(SUBSTRING_INDEX(time, ':', 2), ':', -1) * 60 + 
-                SUBSTRING_INDEX(time, ':', -1)
-              ) / 3600), 2, '0'),
-              ':',
-              LPAD(FLOOR(MOD(SUM(
-                SUBSTRING_INDEX(time, ':', 1) * 3600 + 
-                SUBSTRING_INDEX(SUBSTRING_INDEX(time, ':', 2), ':', -1) * 60 + 
-                SUBSTRING_INDEX(time, ':', -1)
-              ), 3600) / 60), 2, '0'),
-              ':',
-              LPAD(FLOOR(MOD(SUM(
-                SUBSTRING_INDEX(time, ':', 1) * 3600 + 
-                SUBSTRING_INDEX(SUBSTRING_INDEX(time, ':', 2), ':', -1) * 60 + 
-                SUBSTRING_INDEX(time, ':', -1)
-              ), 60)), 2, '0')
-            ) AS total_time
-          FROM Grouptimes 
-          WHERE userId = :userId
-        `,
+            SELECT 
+              CONCAT(
+                LPAD(FLOOR(SUM(
+                  SUBSTRING_INDEX(time, ':', 1) * 3600 + 
+                  SUBSTRING_INDEX(SUBSTRING_INDEX(time, ':', 2), ':', -1) * 60 + 
+                  SUBSTRING_INDEX(time, ':', -1)
+                ) / 3600), 2, '0'),
+                ':',
+                LPAD(FLOOR(MOD(SUM(
+                  SUBSTRING_INDEX(time, ':', 1) * 3600 + 
+                  SUBSTRING_INDEX(SUBSTRING_INDEX(time, ':', 2), ':', -1) * 60 + 
+                  SUBSTRING_INDEX(time, ':', -1)
+                ), 3600) / 60), 2, '0'),
+                ':',
+                LPAD(FLOOR(MOD(SUM(
+                  SUBSTRING_INDEX(time, ':', 1) * 3600 + 
+                  SUBSTRING_INDEX(SUBSTRING_INDEX(time, ':', 2), ':', -1) * 60 + 
+                  SUBSTRING_INDEX(time, ':', -1)
+                ), 60)), 2, '0')
+              ) AS total_time
+            FROM Grouptimes 
+            WHERE userId = :userId
+          `,
             {
                replacements: { userId },
                type: sequelize.QueryTypes.SELECT,
@@ -123,10 +133,10 @@ router.put('/:groupId', isLoggedIn, async (req, res) => {
             }
          )
 
-         const totalTime = totalTimeResult.total_time || '00:00:00'
+         const totalTime = totalTimeResult?.total_time || '00:00:00'
          console.log(`사용자 ID ${userId}의 총 학습 시간: ${totalTime}`)
 
-         // 3. time 테이블 업데이트
+         // 3. time 테이블 업데이트 (기존 코드와 동일)
          const [timeRecord, created] = await Time.findOrCreate({
             where: { userId },
             defaults: { time: totalTime },
@@ -139,16 +149,28 @@ router.put('/:groupId', isLoggedIn, async (req, res) => {
 
          return {
             success: true,
-            message: updated > 0 ? '타이머 정보 업데이트 성공' : '타이머 정보 생성 성공',
-            grouptime: updated > 0 ? grouptimeData[0] : newGrouptime,
+            message: grouptimeRecord ? '타이머 정보 업데이트 성공' : '타이머 정보 생성 성공',
+            grouptime: updatedGrouptime,
             totalTime,
          }
       })
 
-      res.status(result.grouptime.id ? 200 : 201).json(result)
+      // 안전하게 응답 처리
+      if (!result || !result.grouptime) {
+         return res.status(500).json({
+            success: false,
+            message: '타이머 정보를 처리하는 중 오류가 발생했습니다.',
+         })
+      }
+
+      res.status(200).json(result)
    } catch (error) {
       console.error('타이머 정보 업데이트 실패:', error)
-      res.status(500).json({ success: false, message: '타이머 정보 업데이트 실패', error })
+      res.status(500).json({
+         success: false,
+         message: '타이머 정보 업데이트 실패',
+         error: error.message || '알 수 없는 오류',
+      })
    }
 })
 
