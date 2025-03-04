@@ -1,4 +1,4 @@
-const { Chat, User } = require('../models')
+const { Chat, User, Myitem, Item } = require('../models')
 
 /**
  * ✅ 방 참가
@@ -67,15 +67,29 @@ async function handleFetchMessages(socket, data) {
          order: [['createdAt', 'DESC']], // 최신 메시지부터 정렬
          offset,
          limit,
+         include: [
+            {
+               model: User,
+               as: 'Sender', // ✅ User 테이블과 조인하여 sender 정보 가져오기
+               attributes: ['nickname'], // ✅ senderNickname 가져오기
+            },
+         ],
       })
 
-      // ✅ 불러온 메시지가 limit보다 작다면 더 이상 불러올 데이터 없음
-      const hasMore = messages.length === limit
+      // ✅ 가져온 데이터에 senderNickname 추가
+      const formattedMessages = messages.map((msg) => ({
+         id: msg.id,
+         senderId: msg.senderId,
+         senderNickname: msg.Sender ? msg.Sender.nickname : '익명', // ✅ 닉네임 추가
+         content: msg.content,
+         messageType: msg.messageType,
+         createdAt: msg.createdAt,
+      }))
 
-      console.log('📨 과거 메시지 전송:', messages.length, '개')
+      console.log('📨 과거 메시지 전송:', formattedMessages.length, '개')
 
-      // ✅ 메시지만 배열로 전달
-      socket.emit('fetch_messages', messages.reverse()) // 배열만 반환하도록 변경
+      // ✅ 클라이언트에 올바른 형식으로 전송
+      socket.emit('fetch_messages', formattedMessages.reverse())
    } catch (error) {
       console.error('❌ 채팅 내역 불러오기 오류:', error)
    }
@@ -105,6 +119,43 @@ function handleDisconnect(socket, chatIo) {
    console.log(`🔴 [채팅 서버] 사용자 ${socket.id} 연결 종료`)
 }
 
+async function handleFetchMyItems(socket, data) {
+   const { userId } = data
+   if (!userId) {
+      console.error('❌ userId가 없습니다.')
+      return
+   }
+
+   console.log(`🎁 [서버] 사용자(${userId})의 아이템 목록을 가져옵니다...`)
+
+   try {
+      const myItems = await Myitem.findAll({
+         where: { userId },
+         include: [
+            {
+               model: Item, // ✅ Item 모델과 조인
+               attributes: ['id', 'name', 'img'],
+            },
+         ],
+      })
+
+      if (!myItems || myItems.length === 0) {
+         console.log(`⚠️ [서버] 사용자(${userId})의 아이템이 없습니다.`)
+      }
+
+      const formattedItems = myItems.map((item) => ({
+         id: item.Item?.id || null,
+         name: item.Item?.name || '알 수 없음',
+         img: item.Item?.img || '',
+      }))
+
+      console.log(`✅ [서버] 사용자(${userId})의 아이템 목록 전송:`, formattedItems)
+      socket.emit('fetch_myitems', formattedItems)
+   } catch (error) {
+      console.error('❌ [서버] 아이템 목록 불러오기 오류:', error)
+   }
+}
+
 module.exports = {
    handleJoinRoom,
    handleSendMessage,
@@ -112,4 +163,5 @@ module.exports = {
    handleUserTyping,
    handleUserStoppedTyping,
    handleDisconnect,
+   handleFetchMyItems,
 }

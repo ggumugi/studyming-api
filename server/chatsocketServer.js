@@ -41,6 +41,8 @@ function setupChatSocketServer(server, sessionMiddleware) {
       // 연결 해제
       socket.on('disconnect', () => chatSocketHandlers.handleDisconnect(socket, chatIo))
 
+      // ✅ 내 아이템 목록 요청 이벤트 추가
+      socket.on('fetch_myitems', (data) => chatSocketHandlers.handleFetchMyItems(socket, data))
       // ✅ 기존 이벤트 리스너 제거 (중복 실행 방지)
       socket.removeAllListeners('send_message')
 

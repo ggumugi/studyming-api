@@ -288,4 +288,37 @@ router.delete('/:groupId/:userId', async (req, res) => {
    }
 })
 
+// 스터디 개수 표시
+// routes/groupmember.js 수정
+router.get('/user', async (req, res) => {
+   try {
+      console.log('🔴 현재 사용자 ID:', req.user?.id) // 인증 확인
+      const userId = req.user.id
+
+      const userGroups = await Groupmember.findAll({
+         where: { userId },
+         include: [
+            {
+               model: Studygroup,
+               attributes: ['id', 'name', 'countMembers'], // countMembers 추가
+            },
+         ],
+      })
+
+      console.log('🔴 DB 조회 결과:', JSON.stringify(userGroups, null, 2)) // 데이터 확인
+
+      res.json({
+         success: true,
+         studyGroups: userGroups.map((g) => ({
+            id: g.Studygroup.id,
+            name: g.Studygroup.name,
+            members: g.Studygroup.countMembers, // 멤버 수 추가
+         })),
+      })
+   } catch (error) {
+      console.error('🔴 API 오류:', error)
+      res.status(500).json({ success: false, message: '서버 오류' })
+   }
+})
+
 module.exports = router

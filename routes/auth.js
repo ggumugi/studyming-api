@@ -664,4 +664,57 @@ router.get('/users', async (req, res) => {
    }
 })
 
+// 비밀번호 검증 API
+router.post('/auth/verify-password', isLoggedIn, async (req, res) => {
+   const { password } = req.body
+   const userId = req.user.id
+
+   try {
+      const user = await User.findByPk(userId)
+      if (!user) {
+         return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' })
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password)
+      if (!isMatch) {
+         return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' })
+      }
+
+      res.json({ success: true, message: '비밀번호가 확인되었습니다.' })
+   } catch (error) {
+      console.error('비밀번호 검증 오류:', error)
+      res.status(500).json({ success: false, message: '서버 오류 발생' })
+   }
+})
+
+// routes/auth.js
+router.delete('/delete-account', isLoggedIn, async (req, res) => {
+   try {
+      const userId = req.user.id
+
+      // 1. 연관 데이터 삭제 (예시)
+      await Point.destroy({ where: { userId } })
+      await Alltime.destroy({ where: { userId } })
+      await Time.destroy({ where: { userId } })
+
+      // 2. 사용자 계정 삭제
+      await User.destroy({ where: { id: userId } })
+
+      // 3. 세션 종료
+      req.logout()
+      req.session.destroy()
+
+      res.json({
+         success: true,
+         message: '회원 탈퇴가 완료되었습니다.',
+      })
+   } catch (error) {
+      console.error('❌ 회원 탈퇴 실패:', error)
+      res.status(500).json({
+         success: false,
+         message: '탈퇴 처리 중 오류 발생',
+      })
+   }
+})
+
 module.exports = router
