@@ -90,6 +90,10 @@ router.get('/:postId', async (req, res) => {
          return res.status(403).json({ success: false, message: '공지사항에는 댓글이 없습니다.' })
       }
 
+      // ✅ 총 댓글 개수 가져오기
+      const totalComments = await Comment.count({ where: { postId } })
+      const totalPages = Math.ceil(totalComments / limit) // 🔥 전체 페이지 수 계산
+
       // ✅ 특정 포스트의 댓글 리스트 가져오기
       const comments = await Comment.findAll({
          where: { postId },
@@ -101,7 +105,7 @@ router.get('/:postId', async (req, res) => {
 
       // console.log('📢 조회된 댓글 목록:', comments) // ✅ 이거 확인!
 
-      res.status(200).json({ success: true, comments })
+      res.status(200).json({ success: true, comments, totalPages, currentPage: page })
    } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, message: '댓글 조회 실패', error })

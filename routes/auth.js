@@ -70,13 +70,18 @@ router.post('/signup', isNotLoggedIn, async (req, res, next) => {
 
       // 중복된 데이터로 인해 DB 오류 발생 시 처리 (SequelizeValidationError)
       if (error.name === 'SequelizeUniqueConstraintError') {
-         const field = error.errors[0].path
+         const field = error.errors[0].path // 중복된 필드 확인
+
+         let message = '중복된 데이터입니다.' // 기본 메시지 설정
+         if (field === 'loginId') message = '중복된 아이디입니다.'
+         else if (field === 'nickname') message = '중복된 닉네임입니다.'
+         else if (field === 'email') message = '중복된 이메일입니다.' // ✅ 이메일 중복 추가!
+
          return res.status(409).json({
             success: false,
-            message: field === 'loginId' ? '중복된 아이디입니다.' : '중복된 닉네임입니다.',
+            message: message, // ✅ 필드에 따라 다른 메시지 반환
          })
       }
-
       res.status(500).json({ success: false, message: '서버 오류 발생', error: error.message })
    }
 })
@@ -171,9 +176,8 @@ router.post('/login', isNotLoggedIn, (req, res, next) => {
                console.error('🚨 정지된 계정 조회 오류:', error)
                return res.status(500).json({ success: false, message: '정지된 계정 조회 중 오류 발생' })
             })
-      } else {
-         proceedWithLogin(user, req, res)
       }
+      proceedWithLogin(user, req, res)
    })(req, res, next)
 })
 
