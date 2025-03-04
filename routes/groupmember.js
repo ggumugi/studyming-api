@@ -3,14 +3,22 @@ const router = express.Router()
 const { Studygroup, Groupmember, User, Grouptime, Groupban } = require('../models')
 
 // 그룹 멤버 가입
+// ✅ 그룹 가입 API (벤 체크 추가)
 router.post('/:groupId', async (req, res) => {
    try {
       const { groupId } = req.params
       const userId = req.user.id
-      // const now = new Date()
-      // const access = now.toISOString().slice(0, 16).replace('T', ' ') // "2023-10-25 12:34"
 
-      // 해당 그룹에 이미 가입된 유저인지 확인
+      // ✅ 🚨 그룹 벤 여부 확인
+      const isBanned = await Groupban.findOne({
+         where: { groupId, userId },
+      })
+
+      if (isBanned) {
+         return res.status(403).json({ success: false, message: '이 그룹에서 차단되었습니다. 가입할 수 없습니다.' })
+      }
+
+      // ✅ 이미 가입된 유저인지 확인
       const existingMember = await Groupmember.findOne({
          where: { groupId, userId },
       })
@@ -19,7 +27,7 @@ router.post('/:groupId', async (req, res) => {
          return res.status(400).json({ success: false, message: '이미 가입된 유저입니다.' })
       }
 
-      // 그룹 멤버 생성
+      // ✅ 그룹 멤버 추가
       const groupmember = await Groupmember.create({
          groupId,
          userId,
@@ -32,16 +40,9 @@ router.post('/:groupId', async (req, res) => {
          voiceState: false,
       })
 
-      await Grouptime.create({
-         time: '00:00:00',
-         groupId,
-         userId,
-      })
-
-      // Studygroup의 countMembers 값 증가
       await Studygroup.increment('countMembers', {
          by: 1,
-         where: { id: groupId }, // 그룹 ID에 해당하는 Studygroup을 찾음
+         where: { id: groupId },
       })
 
       res.status(201).json({ success: true, groupmember })
@@ -243,7 +244,7 @@ router.put('/:groupId', async (req, res) => {
 })
 
 // ✅ 강퇴 API - 방장만 실행 가능
-router.delete('/:groupId/:userId', async (req, res) => {
+router.delete('/kick/:groupId/:userId', async (req, res) => {
    try {
       const { groupId, userId } = req.params
       const leaderId = req.user.id // 현재 요청한 유저 (방장인지 확인)
@@ -259,46 +260,30 @@ router.delete('/:groupId/:userId', async (req, res) => {
 
       // ✅ 강퇴할 멤버가 그룹에 있는지 확인
       const member = await Groupmember.findOne({
-         where: { groupId, userId, role: 'member' },
+         where: { groupId, userId },
       })
 
       if (!member) {
          return res.status(400).json({ success: false, message: '강퇴할 대상이 그룹에 없습니다.' })
       }
 
-      // ✅ `groupban` 테이블에 강퇴된 유저 추가
-      console.log('🔥 `groupban`에 추가할 데이터 - groupId:', groupId, 'userId:', userId)
+      // ✅ 🚨 `groupban` 테이블에 강퇴된 유저 추가 (중복 추가 방지)
+      const existingBan = await Groupban.findOne({ where: { groupId, userId } })
 
-      const banResult = await Groupban.create({ groupId, userId })
-      console.log('✅ `groupban` 추가 결과:', banResult)
-
-      await Groupban.sequelize.query('INSERT INTO groupban (groupId, userId) VALUES (?, ?)', {
-         replacements: [groupId, userId],
-      })
+      if (!existingBan) {
+         const banResult = await Groupban.create({ groupId, userId })
+         console.log('✅ `groupban` 추가 성공:', banResult)
+      } else {
+         console.log('⚠️ 이미 `groupban` 테이블에 있는 유저입니다.')
+      }
 
       // ✅ 강퇴할 멤버 삭제 (그룹에서 제거)
       await member.destroy()
 
-      // 스터디 그룹 멤버 수 감소
+      // ✅ 스터디 그룹 멤버 수 감소
       await Studygroup.decrement('countMembers', { by: 1, where: { id: groupId } })
 
-      await Groupban.sequelize.query('INSERT INTO groupbans (groupId, userId) VALUES (?, ?)', {
-         replacements: [groupId, userId],
-      })
-
-      // ✅ `groupban.create()` 실행 전 `groupId`와 `userId` 값 확인
-      // console.log(`🔥 강퇴 요청 - groupId: ${groupId}, userId: ${userId}`)
-
-      // if (!groupId || !userId) {
-      // console.error('❌ groupId 또는 userId가 정의되지 않음!')
-      // return res.status(400).json({ success: false, message: '잘못된 요청 (groupId 또는 userId 없음)' })
-      // }
-
-      // ✅ `groupban` 테이블에 강퇴된 유저 추가
-      // const banResult = await Groupban.create({ groupId, userId })
-      // console.log('✅ `groupban` 추가 결과:', banResult)
-
-      res.json({ success: true, message: '유저가 강퇴되었습니다.' })
+      res.json({ success: true, message: '유저가 강퇴 및 그룹 벤 처리되었습니다.' })
    } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, message: '강퇴 실패', error })
