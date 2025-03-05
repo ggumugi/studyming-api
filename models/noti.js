@@ -28,8 +28,8 @@ module.exports = class Noti extends Sequelize.Model {
    }
 
    static associate(db) {
-      Noti.belongsTo(db.User, { foreignKey: 'userId', targetKey: 'id', onDelete: 'CASCADE' })
-      Noti.belongsTo(db.Admin, { foreignKey: 'adminId', targetKey: 'id', onDelete: 'CASCADE' })
+      Noti.belongsTo(db.User, { foreignKey: 'recieveId', targetKey: 'id', onDelete: 'CASCADE' })
+      Noti.belongsTo(db.User, { foreignKey: 'sendId', targetKey: 'id', onDelete: 'CASCADE' })
       Noti.hasMany(db.AdminAction, { foreignKey: 'notiId', sourceKey: 'id', onDelete: 'CASCADE' })
    }
 }

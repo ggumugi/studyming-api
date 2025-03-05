@@ -89,6 +89,17 @@ router.get('/:id', async (req, res) => {
                attributes: ['name'], // 해시태그 이름만 가져오기
                through: { attributes: [] },
             },
+            {
+               model: Groupmember,
+               where: { role: 'leader' },
+               required: false,
+               include: [
+                  {
+                     model: User,
+                     attributes: ['nickname', 'id'],
+                  },
+               ],
+            },
          ],
       })
 
