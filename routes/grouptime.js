@@ -236,36 +236,4 @@ router.patch('/captcha-fail/:groupId', isLoggedIn, async (req, res) => {
    }
 })
 
-// 사용자의 총 학습 시간 조회 API 추가
-router.get('/total-time', isLoggedIn, async (req, res) => {
-   try {
-      const userId = req.user.id
-
-      // 사용자의 time 테이블 레코드 조회
-      const timeRecord = await Time.findOne({
-         where: { userId },
-      })
-
-      // 레코드가 없으면 기본값 반환
-      if (!timeRecord) {
-         return res.json({
-            success: true,
-            totalTime: '00:00:00',
-         })
-      }
-
-      res.json({
-         success: true,
-         totalTime: timeRecord.time,
-      })
-   } catch (error) {
-      console.error('총 학습 시간 조회 실패:', error)
-      res.status(500).json({
-         success: false,
-         message: '총 학습 시간 조회 중 오류 발생',
-         error,
-      })
-   }
-})
-
 module.exports = router

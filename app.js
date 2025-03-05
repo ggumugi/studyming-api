@@ -30,6 +30,7 @@ const screenShareRouter = require('./routes/screenShare')
 const grouptimeRouter = require('./routes/grouptime')
 const timeRouter = require('./routes/time')
 const notiRouter = require('./routes/noti')
+const studyListRouter = require('./routes/studyList')
 
 // Express 앱 생성
 const app = express()
@@ -120,8 +121,6 @@ io.on('connection', (socket) => {
       // 방 ID 저장 (연결 종료 시 사용)
       socket.roomId = roomId
       socket.userId = userId
-
-      console.log(`사용자 ${userName}(${userId})가 방 ${roomId}에 참가함`)
    })
 
    // WebRTC 시그널링
@@ -135,8 +134,6 @@ io.on('connection', (socket) => {
          return
       }
 
-      console.log(`시그널: ${from} -> ${to}`)
-
       // 특정 사용자에게 시그널 전달
       io.to(roomId).emit('signal', {
          from,
@@ -149,8 +146,6 @@ io.on('connection', (socket) => {
    socket.on('screen-sharing-status', (data) => {
       const { roomId, isSharing } = data
       const userId = socket.userId
-
-      console.log(`화면 공유 상태 변경 요청: 사용자 ${userId}, 방 ${roomId}, 공유 ${isSharing}`)
 
       // 입력 검증
       if (!roomId || userId === undefined || isSharing === undefined) {
@@ -180,7 +175,6 @@ io.on('connection', (socket) => {
             }
          }
 
-         console.log(`사용자 ${userId}가 화면 공유 시작`)
          rooms[roomId].screenShare = userId
 
          // 사용자 상태 업데이트
@@ -188,7 +182,6 @@ io.on('connection', (socket) => {
             rooms[roomId].users[userId].isSharing = true
          }
       } else {
-         console.log(`사용자 ${userId}가 화면 공유 중지`)
          if (rooms[roomId].screenShare === userId) {
             rooms[roomId].screenShare = null
          }
@@ -223,8 +216,6 @@ io.on('connection', (socket) => {
       }
 
       if (rooms[roomId]) {
-         console.log(`사용자 ${socket.userId}에게 화면 공유 상태 동기화 정보 전송`)
-
          // 현재 화면 공유 상태 전송
          socket.emit('screen-share-status-sync', {
             roomId,
@@ -301,8 +292,6 @@ io.on('connection', (socket) => {
             // 업데이트된 사용자 목록 전송
             socket.to(roomId).emit('room-users', rooms[roomId].users)
          }
-
-         console.log(`사용자 ${userId} 연결 종료 처리 완료`)
       }
    })
 
@@ -386,6 +375,7 @@ app.use('/screenShare', screenShareRouter)
 app.use('/grouptime', grouptimeRouter)
 app.use('/time', timeRouter)
 app.use('/noti', notiRouter)
+app.use('/studyList', studyListRouter)
 
 // 서버 시작
 const PORT = app.get('port')
