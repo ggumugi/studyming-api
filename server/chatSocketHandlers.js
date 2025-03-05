@@ -27,28 +27,50 @@ async function handleSendMessage(socket, chatIo, data) {
          return
       }
 
-      // ✅ DB에 메시지 저장 (닉네임 없이)
+      let content = data.content
+      let messageType = data.messageType || 'text'
+
+      // ✅ 아이템 메시지일 경우, 해당 유저가 해당 아이템을 보유하고 있는지 확인
+      if (data.messageType === 'item') {
+         const itemId = data.content.replace('[아이템] ', '') // ✅ 아이템 ID 추출
+
+         // 🔥 유저가 실제로 보유한 아이템인지 확인 (myitem 테이블)
+         const ownedItem = await Myitem.findOne({
+            where: { userId: data.senderId, itemId: itemId },
+            include: [{ model: Item, attributes: ['img'] }],
+         })
+
+         if (ownedItem) {
+            content = `http://localhost:8000${ownedItem.Item.img}` // ✅ 실제 이미지 URL로 변환
+            messageType = 'image'
+         } else {
+            console.warn(`⚠️ 유저(${data.senderId})가 아이템(${itemId})을 보유하지 않음.`)
+            content = '[아이템이 없습니다]' // ❌ 아이템이 없으면 변환하지 않음
+            messageType = 'text' // ❌ 이미지가 아니라 일반 텍스트 처리
+         }
+      }
+
+      // ✅ DB에 메시지 저장
       const newMessage = await Chat.create({
          groupId: data.groupId,
          senderId: data.senderId,
-         content: data.content,
-         messageType: data.messageType || 'text',
+         content,
+         messageType,
       })
 
-      // ✅ User 테이블에서 senderId에 해당하는 닉네임 가져오기
       const sender = await User.findOne({ where: { id: data.senderId } })
 
-      // ✅ 같은 방의 모든 사용자에게 메시지 전송 (닉네임 추가)
+      console.log(`✅ 메시지 저장됨: ${JSON.stringify(newMessage)}`)
+
+      // ✅ 같은 방의 모든 사용자에게 메시지 전송
       chatIo.to(data.groupId).emit('receive_message', {
          id: newMessage.id,
          senderId: data.senderId,
-         senderNickname: sender ? sender.nickname : '익명', // ✅ 닉네임 추가
-         content: data.content,
-         messageType: data.messageType,
+         senderNickname: sender ? sender.nickname : '익명',
+         content,
+         messageType,
          createdAt: newMessage.createdAt,
       })
-
-      console.log(`✅ 메시지 저장됨: ${JSON.stringify(newMessage)}`)
    } catch (error) {
       console.error('❌ 메시지 저장 오류:', error)
    }
@@ -64,31 +86,28 @@ async function handleFetchMessages(socket, data) {
    try {
       const messages = await Chat.findAll({
          where: { groupId: roomId },
-         order: [['createdAt', 'DESC']], // 최신 메시지부터 정렬
+         order: [['createdAt', 'DESC']],
          offset,
          limit,
          include: [
             {
                model: User,
-               as: 'Sender', // ✅ User 테이블과 조인하여 sender 정보 가져오기
-               attributes: ['nickname'], // ✅ senderNickname 가져오기
+               as: 'Sender',
+               attributes: ['nickname'],
             },
          ],
       })
 
-      // ✅ 가져온 데이터에 senderNickname 추가
       const formattedMessages = messages.map((msg) => ({
          id: msg.id,
          senderId: msg.senderId,
-         senderNickname: msg.Sender ? msg.Sender.nickname : '익명', // ✅ 닉네임 추가
+         senderNickname: msg.Sender ? msg.Sender.nickname : '익명',
          content: msg.content,
          messageType: msg.messageType,
          createdAt: msg.createdAt,
       }))
 
-      console.log('📨 과거 메시지 전송:', formattedMessages.length, '개')
-
-      // ✅ 클라이언트에 올바른 형식으로 전송
+      console.log('📨 과거 메시지 전송:', formattedMessages) // ✅ 콘솔 확인
       socket.emit('fetch_messages', formattedMessages.reverse())
    } catch (error) {
       console.error('❌ 채팅 내역 불러오기 오류:', error)
@@ -119,6 +138,9 @@ function handleDisconnect(socket, chatIo) {
    console.log(`🔴 [채팅 서버] 사용자 ${socket.id} 연결 종료`)
 }
 
+/**
+ * 아이템 가져오기
+ * */
 async function handleFetchMyItems(socket, data) {
    const { userId } = data
    if (!userId) {
