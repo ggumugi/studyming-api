@@ -202,6 +202,8 @@ function proceedWithLogin(user, req, res) {
                   nickname: user.nickname,
                   name: user.name,
                   role: user.role,
+                  kakao: user.kakao,
+                  google: user.google,
                },
             })
          })
@@ -261,6 +263,8 @@ router.post('/google-login', async (req, res) => {
                   nickname: user.nickname,
                   name: user.name,
                   role: user.role,
+                  google: user.google,
+                  kakao: user.kakao,
                },
             })
          })
@@ -325,6 +329,8 @@ router.post('/kakao-login', async (req, res) => {
                   nickname: user.nickname,
                   name: user.name,
                   role: user.role,
+                  google: user.google,
+                  kakao: user.kakao,
                },
             })
          })
@@ -666,7 +672,7 @@ router.get('/users', async (req, res) => {
 })
 
 // 비밀번호 검증 API
-router.post('/auth/verify-password', isLoggedIn, async (req, res) => {
+router.post('/verify-password', isLoggedIn, async (req, res) => {
    const { password } = req.body
    const userId = req.user.id
 
@@ -688,7 +694,7 @@ router.post('/auth/verify-password', isLoggedIn, async (req, res) => {
    }
 })
 
-// routes/auth.js
+// 회원 탈퇴퇴
 router.delete('/delete-account', isLoggedIn, async (req, res) => {
    try {
       const userId = req.user.id
@@ -701,20 +707,182 @@ router.delete('/delete-account', isLoggedIn, async (req, res) => {
       // 2. 사용자 계정 삭제
       await User.destroy({ where: { id: userId } })
 
-      // 3. 세션 종료
-      req.logout()
-      req.session.destroy()
+      // 3. 세션 종료 - 콜백 함수 추가
+      req.logout((err) => {
+         if (err) {
+            return res.status(500).json({
+               success: false,
+               message: '로그아웃 중 오류가 발생했습니다.',
+               error: err,
+            })
+         }
 
-      res.json({
-         success: true,
-         message: '회원 탈퇴가 완료되었습니다.',
+         // 세션 삭제
+         req.session.destroy((sessionErr) => {
+            if (sessionErr) {
+               return res.status(500).json({ success: false, message: '세션 삭제 실패' })
+            }
+
+            // 쿠키 삭제
+            res.clearCookie('connect.sid')
+
+            return res.json({
+               success: true,
+               message: '회원 탈퇴가 완료되었습니다.',
+            })
+         })
       })
    } catch (error) {
       console.error('❌ 회원 탈퇴 실패:', error)
       res.status(500).json({
          success: false,
          message: '탈퇴 처리 중 오류 발생',
+         error: error.message,
       })
+   }
+})
+
+// 사용자 상세 정보 가져오기
+router.get('/info', isLoggedIn, async (req, res) => {
+   try {
+      const user = await User.findByPk(req.user.id, {
+         attributes: ['id', 'loginId', 'email', 'nickname', 'name', 'status', 'role', 'google', 'kakao'],
+      })
+
+      if (!user) {
+         return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' })
+      }
+
+      res.json({
+         success: true,
+         user: {
+            id: user.id,
+            loginId: user.loginId,
+            email: user.email,
+            nickname: user.nickname,
+            name: user.name,
+            status: user.status,
+            role: user.role,
+            google: !!user.google,
+            kakao: !!user.kakao,
+         },
+      })
+   } catch (error) {
+      console.error('사용자 정보 조회 오류:', error)
+      res.status(500).json({ success: false, message: '서버 오류 발생' })
+   }
+})
+
+// 사용자 정보 업데이트 API
+router.patch('/update', isLoggedIn, async (req, res) => {
+   const { nickname, password } = req.body
+   const userId = req.user.id
+
+   try {
+      const user = await User.findByPk(userId)
+      if (!user) {
+         return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' })
+      }
+
+      // 업데이트할 데이터 객체
+      const updateData = {}
+
+      // 닉네임이 제공된 경우 업데이트
+      if (nickname && nickname !== user.nickname) {
+         // 닉네임 중복 확인
+         const existingUsers = await User.findAll({
+            where: { nickname },
+         })
+
+         // 현재 사용자가 아닌 다른 사용자 중 동일한 닉네임이 있는지 확인
+         const existingUser = existingUsers.find((user) => user.id !== userId)
+
+         if (existingUser) {
+            return res.status(409).json({ success: false, message: '이미 사용 중인 닉네임입니다.' })
+         }
+
+         updateData.nickname = nickname
+      }
+
+      // 비밀번호가 제공된 경우 업데이트
+      if (password) {
+         const hash = await bcrypt.hash(password, 12)
+         updateData.password = hash
+      }
+
+      // 변경할 내용이 없으면 오류 반환
+      if (Object.keys(updateData).length === 0) {
+         return res.status(400).json({ success: false, message: '변경할 정보가 없습니다.' })
+      }
+
+      // 사용자 정보 업데이트
+      await user.update(updateData)
+
+      // 업데이트된 사용자 정보 반환
+      res.json({
+         success: true,
+         message: '사용자 정보가 업데이트되었습니다.',
+         user: {
+            id: user.id,
+            loginId: user.loginId,
+            email: user.email,
+            nickname: user.nickname,
+            name: user.name,
+            role: user.role,
+            google: user.google,
+            kakao: user.kakao,
+         },
+      })
+   } catch (error) {
+      console.error('사용자 정보 업데이트 오류:', error)
+
+      // 특정 오류 처리
+      if (error.name === 'SequelizeUniqueConstraintError') {
+         return res.status(409).json({ success: false, message: '이미 사용 중인 닉네임입니다.' })
+      }
+
+      res.status(500).json({ success: false, message: '서버 오류 발생' })
+   }
+})
+
+// SNS 계정 연동 API
+router.patch('/connect-sns', isLoggedIn, async (req, res) => {
+   try {
+      const { type } = req.body
+      const userId = req.user.id
+
+      // 사용자 조회
+      const user = await User.findByPk(userId)
+      if (!user) {
+         return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' })
+      }
+
+      // 연동 처리
+      if (type === 'google') {
+         await user.update({ google: true })
+      } else if (type === 'kakao') {
+         await user.update({ kakao: true })
+      } else {
+         return res.status(400).json({ success: false, message: '지원하지 않는 SNS 타입입니다.' })
+      }
+
+      res.json({
+         success: true,
+         message: `${type === 'google' ? '구글' : '카카오'} 계정이 성공적으로 연동되었습니다.`,
+         user: {
+            id: user.id,
+            loginId: user.loginId,
+            email: user.email,
+            nickname: user.nickname,
+            name: user.name,
+            role: user.role,
+            google: user.google,
+            kakao: user.kakao,
+         },
+      })
+   } catch (error) {
+      console.error(`SNS 계정 연동 오류:`, error)
+      res.status(500).json({ success: false, message: 'SNS 계정 연동 중 오류가 발생했습니다.' })
    }
 })
 
