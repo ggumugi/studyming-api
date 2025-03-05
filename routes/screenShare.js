@@ -63,9 +63,17 @@ router.get('/status/:groupId', isLoggedIn, async (req, res) => {
          ],
       })
 
+      // 화면 공유 중인 멤버 찾기
+      const sharingMembers = groupmembers.filter((member) => member.shareState)
+
       res.json({
          success: true,
          groupmembers,
+         sharingMembersCount: sharingMembers.length,
+         sharingMembers: sharingMembers.map((member) => ({
+            userId: member.userId,
+            nickname: member.User ? member.User.nickname : `사용자 ${member.userId}`,
+         })),
       })
    } catch (error) {
       console.error('그룹 화면 공유 상태 조회 오류:', error)
@@ -96,20 +104,48 @@ router.get('/peers/:groupId', isLoggedIn, async (req, res) => {
          ],
       })
 
+      // 응답 데이터 구성
+      const peers = groupmembers.map((member) => ({
+         userId: member.userId,
+         nickname: member.User ? member.User.nickname : `사용자 ${member.userId}`,
+         peerId: `user-${member.userId}-group-${groupId}`,
+         shareState: member.shareState,
+         camState: member.camState,
+         voiceState: member.voiceState,
+      }))
+
       res.json({
          success: true,
-         peers: groupmembers.map((member) => ({
-            userId: member.userId,
-            nickname: member.User ? member.User.nickname : `사용자 ${member.userId}`,
-            peerId: `user-${member.userId}-group-${groupId}`,
-            shareState: member.shareState,
-         })),
+         peers,
+         count: peers.length,
       })
    } catch (error) {
       console.error('활성 피어 목록 조회 오류:', error)
       res.status(500).json({
          success: false,
          message: '활성 피어 목록 조회 실패',
+         error: error.message,
+      })
+   }
+})
+
+// 피어 연결 로그 저장 (옵션 - 디버깅용)
+router.post('/logs', isLoggedIn, async (req, res) => {
+   try {
+      const { peerId, status, details } = req.body
+
+      // 여기서 로그를 DB에 저장하거나 필요한 처리를 할 수 있습니다
+      console.log(`[Peer Log] ${peerId}: ${status}`, details)
+
+      res.json({
+         success: true,
+         message: '로그가 저장되었습니다.',
+      })
+   } catch (error) {
+      console.error('피어 로그 저장 오류:', error)
+      res.status(500).json({
+         success: false,
+         message: '피어 로그 저장 실패',
          error: error.message,
       })
    }

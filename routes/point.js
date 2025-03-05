@@ -1,6 +1,20 @@
 const express = require('express')
 const router = express.Router()
+const axios = require('axios')
 const { User, Item, Point, Purchase, Pointhistory, Myitem, sequelize } = require('../models')
+require('dotenv').config()
+
+const IAMPORT_API_KEY = process.env.IAMPORT_API_KEY
+const IAMPORT_API_SECRET = process.env.IAMPORT_API_SECRET
+
+// ✅ Iamport 토큰 발급
+const getIamportToken = async () => {
+   const response = await axios.post('https://api.iamport.kr/users/getToken', {
+      imp_key: IAMPORT_API_KEY,
+      imp_secret: IAMPORT_API_SECRET,
+   })
+   return response.data.response.access_token
+}
 
 /**
  * ✅ 1. 포인트 조회 (GET /point)
@@ -140,42 +154,56 @@ router.post('/', async (req, res) => {
 /**
  * ✅ 포인트 충전 (POST /point/charge)
  */
+// ✅ 결제 검증 및 포인트 지급
 router.post('/charge', async (req, res) => {
+   const { imp_uid, amount } = req.body
+   const userId = req.user.id
+
    const t = await sequelize.transaction()
    try {
-      const { amount } = req.body
+      // ✅ 1. Iamport 액세스 토큰 발급
+      const accessToken = await getIamportToken()
 
-      if (amount <= 0) throw new Error('충전 금액은 0보다 커야 합니다.')
-
-      // 유저 조회
-      const user = await User.findByPk(req.user.id, {
-         include: [{ model: Point }],
-         transaction: t,
-         lock: t.LOCK.UPDATE,
+      // ✅ 2. Iamport 결제 정보 조회
+      const response = await axios.get(`https://api.iamport.kr/payments/${imp_uid}`, {
+         headers: { Authorization: `Bearer ${accessToken}` },
       })
-      if (!user || !user.Point) throw new Error('포인트 정보를 찾을 수 없습니다.')
 
-      // 포인트 충전
-      user.Point.point += amount
-      await user.Point.save({ transaction: t })
+      const paymentData = response.data.response
+      console.log('💳 Iamport 결제 정보:', paymentData)
 
-      // 포인트 충전 내역 추가 (`restPoint` 저장)
+      // ✅ 3. 결제 금액 검증
+      if (paymentData.amount !== amount) {
+         throw new Error('결제 금액 불일치')
+      }
+
+      // ✅ 4. 사용자 포인트 업데이트
+      let pointRecord = await Point.findOne({ where: { userId } })
+
+      if (!pointRecord) {
+         pointRecord = await Point.create({ userId, point: amount }, { transaction: t })
+      } else {
+         pointRecord.point += amount
+         await pointRecord.save({ transaction: t })
+      }
+
+      // ✅ 5. 포인트 충전 내역 저장
       await Pointhistory.create(
          {
-            pointId: user.Point.id,
-            history: `포인트 충전 +${amount}`,
+            pointId: pointRecord.id,
+            history: `포인트 충전 +${amount}밍`,
             type: 'charge',
-            restPoint: user.Point.point, // ✅ 충전 후 포인트 기록
+            restPoint: pointRecord.point,
          },
          { transaction: t }
       )
 
       await t.commit()
-      res.status(201).json({ success: true, message: '포인트 충전 완료', newPoints: user.Point.point })
+      res.status(201).json({ success: true, message: '포인트 충전 완료', newPoints: pointRecord.point })
    } catch (error) {
       await t.rollback()
-      console.error(error)
-      res.status(500).json({ success: false, message: '포인트 충전 중 오류 발생', error: error.message })
+      console.error('❌ 포인트 충전 오류:', error)
+      res.status(500).json({ success: false, message: '포인트 충전 실패', error: error.message })
    }
 })
 

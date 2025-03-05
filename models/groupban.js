@@ -3,7 +3,16 @@ const Sequelize = require('sequelize')
 module.exports = class Groupban extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
-         {},
+         {
+            groupId: {
+               type: Sequelize.INTEGER,
+               allowNull: false,
+            },
+            userId: {
+               type: Sequelize.INTEGER,
+               allowNull: false,
+            },
+         },
          {
             sequelize,
             timestamps: false,

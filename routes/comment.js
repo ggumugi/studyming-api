@@ -32,16 +32,10 @@ const upload = multer({
 //댓글 작성(정보게시판엔 댓글 불필요)
 router.post('/:postId', isLoggedIn, upload.single('image'), async (req, res) => {
    try {
-      console.log('📢 요청이 multer로 오기 전 req.headers:', req.headers)
-      console.log('📢 요청이 multer로 오기 전 req.body:', req.body)
       const { postId } = req.params
 
       const { content } = req.body
       const imgPath = req.file ? `/uploads/${req.file.filename}` : null
-
-      console.log('📢 요청된 postId:', req.params.postId)
-      console.log('📢 요청된 body:', req.body) // ✅ content 값 확인
-      console.log('📢 요청된 파일:', req.file) // ✅ 이미지 파일 확인
 
       // ✅ 포스트 존재 여부 확인
       const post = await Post.findByPk(postId)
@@ -72,9 +66,6 @@ router.post('/:postId', isLoggedIn, upload.single('image'), async (req, res) => 
 router.get('/:postId', async (req, res) => {
    try {
       const { postId } = req.params
-      console.log('📢 fetchComments 요청 시작! req.params:', req.params) // ✅ postId 확인
-
-      console.log('📢 최종 postId 값:', postId)
       const page = parseInt(req.query.page, 10) || 1
       const limit = parseInt(req.query.limit, 10) || 10
       const offset = (page - 1) * limit
@@ -90,6 +81,10 @@ router.get('/:postId', async (req, res) => {
          return res.status(403).json({ success: false, message: '공지사항에는 댓글이 없습니다.' })
       }
 
+      // ✅ 총 댓글 개수 가져오기
+      const totalComments = await Comment.count({ where: { postId } })
+      const totalPages = Math.ceil(totalComments / limit) // 🔥 전체 페이지 수 계산
+
       // ✅ 특정 포스트의 댓글 리스트 가져오기
       const comments = await Comment.findAll({
          where: { postId },
@@ -99,9 +94,7 @@ router.get('/:postId', async (req, res) => {
          include: [{ model: User, attributes: ['id', 'nickname'] }],
       })
 
-      // console.log('📢 조회된 댓글 목록:', comments) // ✅ 이거 확인!
-
-      res.status(200).json({ success: true, comments })
+      res.status(200).json({ success: true, comments, totalPages, currentPage: page })
    } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, message: '댓글 조회 실패', error })
@@ -114,12 +107,6 @@ router.put('/:id', isLoggedIn, upload.single('image'), async (req, res) => {
       const { id } = req.params // ✅ commentId → id 변경
       const { content } = req.body
       const imgPath = req.file ? `/uploads/${req.file.filename}` : null // ✅ 새 이미지 업로드
-
-      console.log('✏️ 댓글 수정 요청:', { id, userId: req.user.id, content, imgPath })
-
-      console.log('✅ 수정할 댓글 ID:', id)
-      console.log('✅ 수정할 내용:', content)
-      console.log('✅ 이미지 경로:', imgPath || '이미지 없음')
 
       // 댓글 조회
       const comment = await Comment.findOne({ where: { id } })
@@ -141,7 +128,6 @@ router.put('/:id', isLoggedIn, upload.single('image'), async (req, res) => {
       }
       await comment.save()
 
-      console.log('✅ 댓글 수정 완료:', id)
       res.status(200).json({ success: true, message: '댓글 수정 완료', comment })
    } catch (error) {
       console.error('❌ 댓글 수정 중 오류 발생:', error)
@@ -153,7 +139,6 @@ router.put('/:id', isLoggedIn, upload.single('image'), async (req, res) => {
 router.delete('/:id', isLoggedIn, async (req, res) => {
    try {
       const { id } = req.params
-      console.log('서버에서 삭제 요청 받은 ID:', id) // ✅ 백엔드에서 로그 확인
 
       const comment = await Comment.findOne({ where: { id } })
       if (!comment) {
