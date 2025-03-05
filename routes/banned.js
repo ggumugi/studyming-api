@@ -53,7 +53,6 @@ router.post('/report', isLoggedIn, async (req, res) => {
 // ✅ 🚀 관리자: 벤 적용 API
 router.post('/ban', isAdmin, async (req, res) => {
    try {
-      console.log('🚀 받은 요청 데이터:', req.body)
       let { reportId, adminId, banDays } = req.body
 
       if (!reportId || !adminId || banDays === undefined) {
@@ -126,7 +125,6 @@ router.post('/ban', isAdmin, async (req, res) => {
 router.put('/updateban', isAdmin, async (req, res) => {
    try {
       const { bannedId, newEndDate } = req.body
-      console.log(`🚀 정지 기간 변경 요청: bannedId = ${bannedId}, newEndDate = ${newEndDate}`)
 
       // ✅ 기존 bannedUser 찾기
       const bannedUser = await Banned.findOne({ where: { bannedId } })
@@ -134,13 +132,9 @@ router.put('/updateban', isAdmin, async (req, res) => {
          return res.status(404).json({ message: `🚨 해당 정지 기록(${bannedId})을 찾을 수 없습니다.` })
       }
 
-      console.log('🚀 기존 endDate:', bannedUser.endDate)
-
       // ✅ 기존 endDate와 새로운 newEndDate를 밀리초 단위로 변환하여 비교
       const oldDate = new Date(bannedUser.endDate).getTime()
       const newDate = new Date(newEndDate).getTime()
-
-      console.log(`🔍 [DEBUG] oldDate: ${oldDate}, newDate: ${newDate}, 차이: ${Math.abs(oldDate - newDate)}ms`)
 
       // ✅ 만약 차이가 1000ms(1초) 이하라면 동일한 값으로 간주
       if (Math.abs(oldDate - newDate) < 1000) {
@@ -152,7 +146,6 @@ router.put('/updateban', isAdmin, async (req, res) => {
 
       // ✅ 변경 후 값 다시 조회
       const updatedUser = await Banned.findOne({ where: { bannedId } })
-      console.log('🚀 변경된 endDate:', updatedUser.endDate)
 
       if (updatedRows === 0) {
          return res.status(400).json({ message: '🚨 정지 기간이 변경되지 않았습니다. (DB에서 무시됨)' })

@@ -69,8 +69,6 @@ router.put('/:groupId', isLoggedIn, async (req, res) => {
       const userId = req.user.id
       const { time } = req.body
 
-      console.log(`타이머 정보 업데이트 요청: 그룹 ID ${groupId}, 사용자 ID ${userId}, 시간 ${time}`)
-
       // 트랜잭션 시작
       const result = await sequelize.transaction(async (t) => {
          // 1. 먼저 레코드가 존재하는지 확인
@@ -85,7 +83,6 @@ router.put('/:groupId', isLoggedIn, async (req, res) => {
             // 레코드가 존재하면 업데이트
             await grouptimeRecord.update({ time }, { transaction: t })
             updatedGrouptime = grouptimeRecord
-            console.log(`타이머 정보 업데이트 완료: ID ${updatedGrouptime.id}`)
          } else {
             // 레코드가 없으면 새로 생성
             updatedGrouptime = await Grouptime.create(
@@ -96,7 +93,6 @@ router.put('/:groupId', isLoggedIn, async (req, res) => {
                },
                { transaction: t }
             )
-            console.log(`타이머 정보 새로 생성: ID ${updatedGrouptime.id}`)
          }
 
          // 2. 데이터베이스 레벨에서 총 시간 계산 (기존 코드와 동일)
@@ -134,7 +130,6 @@ router.put('/:groupId', isLoggedIn, async (req, res) => {
          )
 
          const totalTime = totalTimeResult?.total_time || '00:00:00'
-         console.log(`사용자 ID ${userId}의 총 학습 시간: ${totalTime}`)
 
          // 3. time 테이블 업데이트 (기존 코드와 동일)
          const [timeRecord, created] = await Time.findOrCreate({
@@ -179,8 +174,6 @@ router.patch('/captcha-fail/:groupId', isLoggedIn, async (req, res) => {
    try {
       const { groupId } = req.params
       const userId = req.user.id
-
-      console.log(`캡차 실패 처리: 그룹 ID ${groupId}, 사용자 ID ${userId}`)
 
       // 그룹 멤버 상태 변경
       await Groupmember.update({ status: 'off' }, { where: { groupId, userId } })
