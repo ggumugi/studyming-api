@@ -6,7 +6,6 @@ const morgan = require('morgan')
 const session = require('express-session')
 const passport = require('passport')
 const http = require('http')
-const { Server } = require('socket.io')
 require('dotenv').config()
 const cors = require('cors')
 const setupChatSocketServer = require('./server/chatsocketServer')
@@ -300,8 +299,10 @@ app.set('port', process.env.PORT || 8002)
 
 // 시퀄라이즈를 사용한 DB 연결
 sequelize
-   .sync({ force: false })
-   .then(() => {})
+   .sync({ force: false, alter: false })
+   .then(() => {
+      console.log('데이터베이스 연결 성공')
+   })
    .catch((err) => {
       console.error('데이터베이스 연결 실패:', err)
    })
