@@ -6,7 +6,6 @@ const { Chat, User, Myitem, Item } = require('../models')
 function handleJoinRoom(socket, chatIo, data) {
    const { roomId } = data
    socket.join(roomId)
-   console.log(`💬 사용자 ${socket.id}가 채팅방 ${roomId}에 입장`)
 
    // 다른 사용자들에게 알림
    socket.to(roomId).emit('user-joined', {
@@ -20,8 +19,6 @@ function handleJoinRoom(socket, chatIo, data) {
  */
 async function handleSendMessage(socket, chatIo, data) {
    try {
-      console.log(`📨 메시지 저장 시도: ${JSON.stringify(data)}`)
-
       if (!data.senderId || !data.groupId) {
          console.error('❌ 필수 데이터 없음: senderId 또는 groupId가 누락됨.')
          return
@@ -59,8 +56,6 @@ async function handleSendMessage(socket, chatIo, data) {
       })
 
       const sender = await User.findOne({ where: { id: data.senderId } })
-
-      console.log(`✅ 메시지 저장됨: ${JSON.stringify(newMessage)}`)
 
       // ✅ 같은 방의 모든 사용자에게 메시지 전송
       chatIo.to(data.groupId).emit('receive_message', {
@@ -107,7 +102,6 @@ async function handleFetchMessages(socket, data) {
          createdAt: msg.createdAt,
       }))
 
-      console.log('📨 과거 메시지 전송:', formattedMessages) // ✅ 콘솔 확인
       socket.emit('fetch_messages', formattedMessages.reverse())
    } catch (error) {
       console.error('❌ 채팅 내역 불러오기 오류:', error)
@@ -148,8 +142,6 @@ async function handleFetchMyItems(socket, data) {
       return
    }
 
-   console.log(`🎁 [서버] 사용자(${userId})의 아이템 목록을 가져옵니다...`)
-
    try {
       const myItems = await Myitem.findAll({
          where: { userId },
@@ -171,7 +163,6 @@ async function handleFetchMyItems(socket, data) {
          img: item.Item?.img || '',
       }))
 
-      console.log(`✅ [서버] 사용자(${userId})의 아이템 목록 전송:`, formattedItems)
       socket.emit('fetch_myitems', formattedItems)
    } catch (error) {
       console.error('❌ [서버] 아이템 목록 불러오기 오류:', error)

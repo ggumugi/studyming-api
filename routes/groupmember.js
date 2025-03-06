@@ -55,8 +55,6 @@ router.patch('/participate/:groupId', async (req, res) => {
       const userId = req.user?.id // 옵셔널 체이닝 추가
       const { status } = req.body
 
-      console.log(`그룹 참여 상태 변경 요청: 그룹 ID ${groupId}, 사용자 ID ${userId}, 상태 ${status}`)
-
       // 사용자 ID 확인
       if (!userId) {
          return res.status(401).json({
@@ -220,10 +218,6 @@ router.delete('/:groupId/:userId', async (req, res) => {
 
 // 방장 위임 (경로 충돌 가능성 있어 순서 중요)
 router.put('/:groupId', async (req, res) => {
-   console.log('방장 위임 API 요청 수신')
-   console.log('받은 groupId:', req.params.groupId)
-   console.log('받은 newLeaderId:', req.body.newLeaderId)
-
    if (!req.params.groupId || !req.body.newLeaderId) {
       return res.status(400).json({ success: false, message: 'groupId 또는 newLeaderId가 없습니다.' })
    }

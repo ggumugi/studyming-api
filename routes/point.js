@@ -170,7 +170,6 @@ router.post('/charge', async (req, res) => {
       })
 
       const paymentData = response.data.response
-      console.log('💳 Iamport 결제 정보:', paymentData)
 
       // ✅ 3. 결제 금액 검증
       if (paymentData.amount !== amount) {

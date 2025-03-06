@@ -85,13 +85,6 @@ router.post('/ban', isAdmin, async (req, res) => {
 
       endDate.setDate(startDate.getDate() + parseInt(banDays)) // ✅ 정수 변환 후 더하기
 
-      console.log('🚀 벤 적용 디버그:', {
-         reportId,
-         reportedUserId: report?.reportedUserId || '없음',
-         reportedById: report?.reportedById || '없음',
-         reason: report?.reason || '없음',
-      })
-
       const bannedUser = await Banned.create({
          userId: report?.reportedUser?.id || null, // ✅ 신고당한 유저 (값이 없으면 null)
          reportedById: report?.reportedBy?.id || adminId, // ✅ 신고한 유저 (없으면 adminId로 대체)

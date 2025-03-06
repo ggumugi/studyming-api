@@ -63,8 +63,6 @@ io.engine.on('connection_error', (err) => {
 
 // Socket.IO 이벤트 핸들러
 io.on('connection', (socket) => {
-   console.log('새 클라이언트 연결:', socket.id)
-
    // 방 참가 이벤트
    socket.on('join-room', (data) => {
       const { roomId, userId, userName } = data
@@ -164,7 +162,6 @@ io.on('connection', (socket) => {
          if (rooms[roomId].screenShare && rooms[roomId].screenShare !== userId) {
             const prevSharingUserId = rooms[roomId].screenShare
             if (rooms[roomId].users[prevSharingUserId]) {
-               console.log(`이전 화면 공유 사용자 ${prevSharingUserId}의 상태 변경`)
                rooms[roomId].users[prevSharingUserId].isSharing = false
 
                // 이전 화면 공유 사용자에게 상태 변경 알림
@@ -193,7 +190,7 @@ io.on('connection', (socket) => {
       }
 
       // 방의 모든 사용자에게 상태 변경 알림
-      console.log(`방 ${roomId}의 모든 사용자에게 화면 공유 상태 변경 알림 전송`)
+
       io.to(roomId).emit('screen-sharing-status', {
          userId,
          isSharing,
@@ -201,8 +198,6 @@ io.on('connection', (socket) => {
 
       // 모든 사용자에게 업데이트된 사용자 목록 전송
       io.to(roomId).emit('room-users', rooms[roomId].users)
-
-      console.log(`화면 공유 상태 변경 처리 완료: ${userId} -> ${isSharing ? '시작' : '중지'}`)
    })
 
    // 화면 공유 상태 동기화 요청 처리
@@ -252,8 +247,6 @@ io.on('connection', (socket) => {
 
       // 모든 사용자에게 업데이트된 사용자 목록 전송
       io.to(roomId).emit('room-users', rooms[roomId].users)
-
-      console.log(`카메라 상태 변경: ${userId} -> ${isOn ? '켬' : '끔'}`)
    })
 
    // 연결 종료 처리
@@ -261,14 +254,11 @@ io.on('connection', (socket) => {
       const { roomId, userId } = socket
 
       if (roomId && userId && rooms[roomId]) {
-         console.log(`사용자 ${userId} 연결 종료 처리 시작`)
-
          // 방에서 사용자 제거
          delete rooms[roomId].users[userId]
 
          // 화면 공유 중이었다면 상태 초기화
          if (rooms[roomId].screenShare === userId) {
-            console.log(`화면 공유 중이던 사용자 ${userId}가 연결 종료됨, 상태 초기화`)
             rooms[roomId].screenShare = null
 
             // 방의 다른 사용자들에게 화면 공유 종료 알림
@@ -286,7 +276,6 @@ io.on('connection', (socket) => {
 
          // 방에 사용자가 없으면 방 삭제
          if (Object.keys(rooms[roomId].users).length === 0) {
-            console.log(`방 ${roomId}에 사용자가 없어 삭제됨`)
             delete rooms[roomId]
          } else {
             // 업데이트된 사용자 목록 전송
@@ -312,15 +301,12 @@ app.set('port', process.env.PORT || 8002)
 // 시퀄라이즈를 사용한 DB 연결
 sequelize
    .sync({ force: false })
-   .then(() => {
-      console.log('데이터베이스 연결 성공')
-   })
+   .then(() => {})
    .catch((err) => {
       console.error('데이터베이스 연결 실패:', err)
    })
 
 app.use((req, res, next) => {
-   console.log('🔍 [DEBUG] 요청마다 세션 확인:', req.session)
    next()
 })
 
@@ -379,6 +365,4 @@ app.use('/studyList', studyListRouter)
 
 // 서버 시작
 const PORT = app.get('port')
-server.listen(PORT, () => {
-   console.log(`서버가 ${PORT} 포트에서 실행 중입니다.`)
-})
+server.listen(PORT, () => {})

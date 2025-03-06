@@ -135,7 +135,6 @@ router.post('/logs', isLoggedIn, async (req, res) => {
       const { peerId, status, details } = req.body
 
       // 여기서 로그를 DB에 저장하거나 필요한 처리를 할 수 있습니다
-      console.log(`[Peer Log] ${peerId}: ${status}`, details)
 
       res.json({
          success: true,

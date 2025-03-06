@@ -6,16 +6,13 @@ const router = express.Router()
 router.get('/time/:userId', async (req, res) => {
    try {
       const { userId } = req.params
-      console.log(`✅ [DEBUG] /time/${userId} 요청 도착`) // 요청 확인 로그
 
       const timeData = await Time.findOne({ where: { userId } })
 
       if (!timeData) {
-         console.log(`[DEBUG] 데이터 없음 - userId: ${userId}`)
          return res.status(404).json({ message: 'Time data not found' })
       }
 
-      console.log(`[DEBUG] 응답 데이터:`, timeData)
       res.json(timeData)
    } catch (error) {
       console.error(`❌ [ERROR] 서버 오류`, error)
