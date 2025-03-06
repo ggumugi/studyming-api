@@ -23,8 +23,6 @@ function setupChatSocketServer(server, sessionMiddleware) {
 
    // ✅ 채팅 이벤트 처리
    chatIo.on('connection', (socket) => {
-      console.log(`💬 [채팅 서버] 사용자 연결: ${socket.id}`)
-
       // 방 참가
       socket.on('join_room', (data) => chatSocketHandlers.handleJoinRoom(socket, chatIo, data))
 
@@ -48,7 +46,6 @@ function setupChatSocketServer(server, sessionMiddleware) {
 
       // ✅ 메시지 전송 이벤트 등록
       socket.on('send_message', (data) => {
-         console.log(`📩 메시지 수신: ${JSON.stringify(data)}`)
          chatSocketHandlers.handleSendMessage(socket, chatIo, data)
       })
    })

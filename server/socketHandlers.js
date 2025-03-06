@@ -5,7 +5,6 @@ function handleJoinRoom(socket, io, data) {
    const { roomId } = data
 
    socket.join(roomId)
-   console.log(`사용자 ${socket.id}가 방 ${roomId}에 입장했습니다.`)
 
    // 방에 있는 다른 사용자들에게 새 사용자 입장 알림
    socket.to(roomId).emit('user-joined', {
@@ -19,7 +18,6 @@ function handleJoinRoom(socket, io, data) {
  */
 function handleScreenShareStarted(socket, io, data) {
    const { roomId } = data
-   console.log(`사용자 ${socket.id}가 방 ${roomId}에서 화면 공유를 시작했습니다.`)
 
    // 방에 있는 다른 사용자들에게 화면 공유 시작 알림
    socket.to(roomId).emit('screen_share_started', {
@@ -34,8 +32,6 @@ function handleScreenShareStarted(socket, io, data) {
 function handleOffer(socket, io, data) {
    const { sdp, roomId, to, from } = data
    const fromId = from || socket.id
-
-   console.log(`오퍼: ${fromId} -> ${to} (방: ${roomId})`)
 
    // 대상 사용자에게 오퍼 전송
    io.to(to).emit('offer', {
@@ -52,8 +48,6 @@ function handleAnswer(socket, io, data) {
    const { sdp, roomId, to, from } = data
    const fromId = from || socket.id
 
-   console.log(`앤서: ${fromId} -> ${to} (방: ${roomId})`)
-
    // 대상 사용자에게 앤서 전송
    io.to(to).emit('answer', {
       sdp,
@@ -69,8 +63,6 @@ function handleCandidate(socket, io, data) {
    const { candidate, roomId, to, from } = data
    const fromId = from || socket.id
 
-   console.log(`ICE Candidate: ${fromId} -> ${to} (방: ${roomId})`)
-
    // 대상 사용자에게 ICE Candidate 전송
    io.to(to).emit('candidate', {
       candidate,
@@ -83,8 +75,6 @@ function handleCandidate(socket, io, data) {
  * 연결 해제 처리 함수
  */
 function handleDisconnect(socket, io) {
-   console.log(`사용자 연결 해제: ${socket.id}`)
-
    // 사용자가 참여한 모든 방 조회
    const rooms = Array.from(socket.rooms).filter((room) => room !== socket.id)
 

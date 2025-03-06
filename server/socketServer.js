@@ -26,8 +26,6 @@ function setupSocketServer(server, sessionMiddleware) {
 
    // 연결 이벤트 처리
    io.on('connection', (socket) => {
-      console.log(`사용자 연결: ${socket.id}`)
-
       // 방 입장 이벤트
       socket.on('join_room', (data) => socketHandlers.handleJoinRoom(socket, io, data))
 

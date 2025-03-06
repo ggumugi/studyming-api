@@ -45,9 +45,6 @@ const upload = multer({
 //게시물 등록
 router.post('/', isLoggedIn, upload.array('images', 10), async (req, res) => {
    try {
-      console.log('📌 req.body:', req.body)
-      console.log('📌 req.user:', req.user)
-
       // 🔥 category 기본값 추가 (없을 경우 'free'로 설정)
       const { title, content, category = 'free' } = req.body
 

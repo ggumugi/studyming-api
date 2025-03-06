@@ -5,8 +5,6 @@ const User = require('../models/user') // ✅ DB에서 사용자 조회
 require('dotenv').config()
 
 module.exports = () => {
-   console.log('📌 Passport 초기화 시작')
-
    // ✅ Local 로그인 전략 실행
    LocalStrategy()
 
@@ -43,21 +41,18 @@ module.exports = () => {
 
    // ✅ serializeUser (Local & Google 로그인 공통)
    passport.serializeUser((user, done) => {
-      console.log('✅ serializeUser 실행: 사용자 ID ->', user.id)
       done(null, user.id) // ✅ user.id만 저장 (Google 로그인도 user.id 사용)
    })
 
    // ✅ deserializeUser (Local & Google 로그인 공통)
    passport.deserializeUser(async (id, done) => {
-      console.log('✅ deserializeUser 실행:', id) // ✅ 요청마다 실행되는지 확인
       try {
          const user = await User.findByPk(id)
-         console.log('🔍 DB에서 찾은 사용자:', user) // ✅ 추가: DB에서 찾은 사용자 확인
+
          if (!user) {
-            console.log('❌ 사용자 정보를 찾을 수 없습니다.')
             return done(null, false)
          }
-         console.log('✅ 사용자 정보 로드 성공:', user) // ✅ 사용자 데이터 확인
+
          return done(null, user)
       } catch (error) {
          return done(error)
