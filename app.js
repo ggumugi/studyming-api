@@ -9,7 +9,7 @@ const http = require('http')
 require('dotenv').config()
 const cors = require('cors')
 const setupChatSocketServer = require('./server/chatsocketServer')
-
+const { Server } = require('socket.io')
 const { sequelize } = require('./models')
 const passportConfig = require('./passport')
 const authRouter = require('./routes/auth')
