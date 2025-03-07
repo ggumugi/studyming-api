@@ -119,7 +119,7 @@ router.put('/:groupId', isLoggedIn, async (req, res) => {
                   SUBSTRING_INDEX(time, ':', -1)
                 ), 60)), 2, '0')
               ) AS total_time
-            FROM Grouptimes 
+            FROM grouptimes 
             WHERE userId = :userId
           `,
             {
@@ -202,7 +202,7 @@ router.patch('/captcha-fail/:groupId', isLoggedIn, async (req, res) => {
                 SUBSTRING_INDEX(time, ':', -1)
               ), 60)), 2, '0')
             ) AS total_time
-          FROM Grouptimes 
+          FROM grouptimes 
           WHERE userId = :userId
         `,
             {
