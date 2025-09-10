@@ -86,7 +86,7 @@
 
 ### [화면 설계서](https://www.figma.com/design/bPH7YyiRWYclDMpJbxT2zb/Studyming?node-id=0-1&t=mG50EjOrFCx8irmo-1)
 
-### [ERD](https://www.erdcloud.com/d/BZx5MLdTEuL4ALwRz)
+### [ERD](https://github.com/ggumugi/studyming-frontend/blob/main/public/img/studyming_erd.png)
 
 <br/>
 
